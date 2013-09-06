@@ -1,5 +1,5 @@
-#ifndef OPTIONS_SCF_
-#define OPTIONS_SCF_
+#ifndef OPTIONS_SCF_45
+#define OPTIONS_SCF_45
 
 #define INX 8
 

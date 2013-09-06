@@ -1,7 +1,7 @@
 #include "radiation_test.h"
-#include "../physical_constants.h"
 
 #ifdef RADIATION_TEST
+#include "../physical_constants.h"
 
 void RadiationTest::run(int argc, char* argv[]) {
 	PhysicalConstants::c = 1.0;

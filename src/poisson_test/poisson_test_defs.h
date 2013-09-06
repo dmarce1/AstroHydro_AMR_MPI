@@ -1,5 +1,5 @@
-#ifndef OPTIONS_SCF_
-#define OPTIONS_SCF_
+#ifndef OPTIONS_SCF4_
+#define OPTIONS_SCF4_
 
 #define GRID_DIM            (1.0)
 #define MINMOD_THETA        1.3

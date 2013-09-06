@@ -1,11 +1,11 @@
 #ifndef RADPOISSON_TEST_H_
 #define RADPOISSON_TEST_H_
 
-#include "../radiation/radiation.h"
-#include "../hydro_rad_grid/hydro_rad_grid.h"
-#include "defs.h"
+#include "../defs.h"
 
 #ifdef RADIATION_TEST
+#include "../radiation/radiation.h"
+#include "../hydro_rad_grid/hydro_rad_grid.h"
 
 class RadiationTest: public Radiation {
 private:

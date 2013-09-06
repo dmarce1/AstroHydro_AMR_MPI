@@ -1,10 +1,10 @@
 #ifndef POISSON_TEST_H_
 #define POISSON_TEST_H_
 
-#include "../poisson/poisson.h"
-#include "poisson_test_defs.h"
 
+#include "../poisson/poisson.h"
 #ifdef POISSON_TEST
+#include "poisson_test_defs.h"
 class PoissonTest: public Poisson {
 public:
 	static Real mass0;

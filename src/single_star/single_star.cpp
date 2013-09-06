@@ -1,9 +1,11 @@
 #include "wd.h"
-#include "defs.h"
+#include "../defs.h"
 #include "../stellar_state/state.h"
 #include "single_star.h"
 
 #ifdef HYDRO_GRAV_GRID
+
+#define WDM 0.5
 
 SingleStar::SingleStar() {
 	// TODO Auto-generated constructor stub
@@ -26,6 +28,13 @@ static bool wd_init = false;
 
 void SingleStar::set_refine_flags() {
 	ChildIndex c;
+	if (!wd_init) {
+		wd_init = true;
+		wd_rho0(WDM, &wd_d0, &wd_r0);
+		State::rho_floor = wd_d0 * 1.0e-12;
+		printf("%e %e\n", wd_d0, wd_r0);
+		//State::nohydro = true;
+	}
 	if (get_level() < 1) {
 		for (int i = 0; i < OCT_NCHILD; i++) {
 			set_refine_flag(i, true);
@@ -51,7 +60,6 @@ void SingleStar::set_refine_flags() {
 	}
 }
 
-#define WDM 0.5
 void SingleStar::initialize() {
 	if (!wd_init) {
 		wd_init = true;

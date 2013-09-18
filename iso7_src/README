@@ -1,0 +1,4 @@
+A simple compile and link should produce an executable.
+for example, with the intel compiler ifort and the aprox13 network, 
+one can go
+% ifort aprox13.f90 -o aprox13.exe

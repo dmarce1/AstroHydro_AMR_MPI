@@ -6,6 +6,7 @@
 CPP_SRCS += \
 ../src/assert.cpp \
 ../src/comm.cpp \
+../src/iso7.cpp \
 ../src/legendre.cpp \
 ../src/main.cpp \
 ../src/physical_constants.cpp \
@@ -20,6 +21,7 @@ OBJS += \
 ./src/assert.o \
 ./src/backtrace_symbols.o \
 ./src/comm.o \
+./src/iso7.o \
 ./src/legendre.o \
 ./src/main.o \
 ./src/physical_constants.o \
@@ -33,6 +35,7 @@ C_DEPS += \
 CPP_DEPS += \
 ./src/assert.d \
 ./src/comm.d \
+./src/iso7.d \
 ./src/legendre.d \
 ./src/main.d \
 ./src/physical_constants.d \

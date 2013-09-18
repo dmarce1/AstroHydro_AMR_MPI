@@ -61,7 +61,7 @@ all: AstroHydro_AMR_MPI
 AstroHydro_AMR_MPI: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Linker'
-	mpicc  -o "AstroHydro_AMR_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
+	mpicc -L"/home/dmarce1/AstroHydro_AMR_MPI/iso7_src" -o "AstroHydro_AMR_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

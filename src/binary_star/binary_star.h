@@ -22,7 +22,7 @@ private:
 	static bool scf_code;
 	static Real q_ratio, polyK, rho_max_a, rho_max_d;
 	static void read_from_file(const char*, int*, int*);
-	static void write_to_file(int, int,const char*);
+	static void write_to_file(int, int, const char*);
 	static _3Vec a0, d0;
 	virtual void set_refine_flags();
 	Real radius(int i, int j, int k);
@@ -86,9 +86,14 @@ public:
 			return U.vz();
 		case 6:
 			return U.temp(x);
-		default:
-			//	case 7:
+		case 7:
 			return get_phi(i - BW + 1, j - BW + 1, k - BW + 1);
+		case 8:
+			return get_fx(i - BW + 1, j - BW + 1, k - BW + 1);
+		case 9:
+			return get_fy(i - BW + 1, j - BW + 1, k - BW + 1);
+		case 10:
+			return get_fz(i - BW + 1, j - BW + 1, k - BW + 1);
 		}
 	}
 	virtual const char* output_field_names(int i) const {
@@ -107,13 +112,18 @@ public:
 			return "vz";
 		case 6:
 			return "T";
-		default:
-			//	case 7:
+		case 7:
 			return "phi";
+		case 8:
+			return "gx";
+		case 9:
+			return "gy";
+		case 10:
+			return "gz";
 		}
 	}
 	virtual int nvar_output() const {
-		return 8;
+		return 11;
 	}
 };
 #endif

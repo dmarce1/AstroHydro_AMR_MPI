@@ -1,10 +1,10 @@
-#include "grid_sod.h"
 #include "../defs.h"
+
+#ifdef SOD
+#include "grid_sod.h"
 #include "sedov.h"
 #include "../indexer3d.h"
 #include "exact_sod.h"
-
-#ifdef SOD
 
 sod_init_t sod_init = { 4.0, 1.0, 1.0, 0.1795, State::gamma };
 

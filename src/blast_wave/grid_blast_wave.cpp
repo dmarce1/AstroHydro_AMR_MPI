@@ -1,9 +1,9 @@
-#include "grid_blast_wave.h"
 #include "../defs.h"
-#include "sedov.h"
-#include "../indexer3d.h"
 
 #ifdef BLAST_WAVE
+#include "grid_blast_wave.h"
+#include "sedov.h"
+#include "../indexer3d.h"
 static Real c = 15.0;
 static Real etot = 0.0;
 static bool diag_mode = false;

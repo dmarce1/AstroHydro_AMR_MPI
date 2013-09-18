@@ -368,8 +368,8 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	shadow_off();
 	setup_grid_structure();
 
-	Real phi_min_a, phi_min_d, l1_phi, l1_x, xd, xa, phi0d, phi0a, l1_x0, com_a, com_d, m_a, m_d, xd0, l2_x, R2, phil1, phil2, l2_phi, Omega, Ra, Rd, Rd0, Ax,
-			Bx, Aphi, Bphi, com;
+	Real phi_min_a, phi_min_d, l1_phi, l1_x, xd, xa, phi0d, phi0a, l1_x0, com_a, com_d, m_a, m_d, xd0, l2_x, R2, phil1, phil2, l2_phi, Omega, Ra, Rd, Rd0, Ax, Bx,
+			Aphi, Bphi, com;
 	Real d2 = 0.05;
 	Real ff = 2.0;
 	Real verr;
@@ -441,11 +441,11 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 #endif
 		if (MPI_rank() == 0) {
 			if (scf_iter % 25 == 0) {
-				printf("\n   %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s \n", "g", "cm", "s", "Ma", "Ka",
-						"phi0a", "xa", "Md", "Kd", "phi0d", "xd", "Omega", "l1_x", "Rd", "Ra", "com", "virial", "ff", "err");
+				printf("\n   %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s \n", "g", "cm", "s", "Ma", "Ka", "phi0a",
+						"xa", "Md", "Kd", "phi0d", "xd", "Omega", "l1_x", "Rd", "Ra", "com", "virial", "ff", "err");
 			}
-			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a,
-					com_a, m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
+			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
+					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
 		check_for_refine();
 		if (fabs(log(Ka / Kd)) < 1.0e-4 && scf_iter >= 101) {
@@ -593,6 +593,9 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 //	system(fname);
 //	free(fname);
 
+	if (MPI_rank() != 0) {
+		MPI_Recv(NULL, 0, MPI_BYTE, 0, MPI_rank() - 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+	}
 	asprintf(&fname, "checkpoint.%s.%i.bin", idname, MPI_rank());
 	fp = fopen(fname, "wb");
 	free(fname);
@@ -607,6 +610,9 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 	fwrite(&i2, sizeof(int), 1, fp);
 	get_root()->write_checkpoint(fp);
 	fclose(fp);
+	if (MPI_rank() != 0) {
+		MPI_Send(NULL, 0, MPI_BYTE, 0, MPI_rank() + 1, MPI_COMM_WORLD );
+	}
 }
 
 void BinaryStar::run(int argc, char* argv[]) {
@@ -870,8 +876,8 @@ void BinaryStar::diagnostics(Real dt) {
 		etall += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::pot_index];
 		//	lz += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::sy_index];
 		FILE* fp = fopen("diag.dat", "at");
-		fprintf(fp, "%.12e %.12e %i %.12e %.12e %.12e %.12e %.12e %.12e\n", get_time(), dt, get_root()->get_node_cnt(), etall,
-				lz + get_flow_off()[State::sy_index], -dlz_hydro, dlz_grav, -dlz_flow_off, -dlz_hydro + dlz_grav - dlz_flow_off);
+		fprintf(fp, "%.12e %.12e %i %.12e %.12e %.12e %.12e %.12e %.12e\n", get_time(), dt, get_root()->get_node_cnt(), etall, lz + get_flow_off()[State::sy_index],
+				-dlz_hydro, dlz_grav, -dlz_flow_off, -dlz_hydro + dlz_grav - dlz_flow_off);
 		fclose(fp);
 	}
 }

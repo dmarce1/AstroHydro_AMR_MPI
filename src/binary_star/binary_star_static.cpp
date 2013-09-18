@@ -610,7 +610,7 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 	fwrite(&i2, sizeof(int), 1, fp);
 	get_root()->write_checkpoint(fp);
 	fclose(fp);
-	if (MPI_rank() != 0) {
+	if (MPI_rank() < MPI_size() -1) {
 		MPI_Send(NULL, 0, MPI_BYTE, 0, MPI_rank() + 1, MPI_COMM_WORLD );
 	}
 }

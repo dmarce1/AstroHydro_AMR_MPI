@@ -9,120 +9,115 @@
 #define NNEIGHBORS (NFACE+NVERTEX+NEDGE)
 #define NINTERACTIONS 189
 
-Real FMM::factorial[2 * (FMM_POLE_MAX + 1) + 1];
-SphericalHarmonic FMM::Y(FMM_POLE_MAX + 1);
-
-Real neg_one_pow(int i) {
-	return Real(1 - 2 * (i & 1));
-}
-
-Real FMM::A(int n, int m) {
-	return neg_one_pow(n) / sqrt(factorial[n - m] * factorial[n + m]);
-}
+const Real kD[3][3] = { { 1., 0, 0 }, { 0, 1., 0 }, { 0, 0, 1. } };
 
 void FMM::compute_moments() {
+	_3Vec dX;
+	for (int n = 0; n < 3; n++) {
+		for (int m = 0; m < 3; m++) {
+			M2[n][m] = 0.0;
+		}
+	}
 	if (refined) {
 		for (int i = 0; i < NCHILD; i++) {
 			children[i]->compute_moments();
 		}
-		Complex tmp;
-		Real r;
-		_3Vec dX;
 		Xcom = 0.0;
-		source = 0.0;
+		M0 = 0.0;
 		for (int i = 0; i < NCHILD; i++) {
-			Xcom += children[i]->Xcom * children[i]->source;
-			source += children[i]->source;
+			Xcom += children[i]->Xcom * children[i]->M0;
+			M0 += children[i]->M0;
 		}
-		if (source == 0.0) {
+		if (M0 == 0.0) {
 			Xcom = X;
 		} else {
-			Xcom /= source;
-		}
-		for (int j = 0; j <= FMM_POLE_MAX; j++) {
-			for (int k = -j; k <= j; k++) {
-				M[j][k] = 0.0;
-				for (int i = 0; i < NCHILD; i++) {
-					dX = children[i]->Xcom - Xcom;
-					r = sqrt(dX.dot(dX));
-					if (r != 0.0) {
-						Y.generate(dX);
-						for (int n = 0; n <= j; n++) {
-							for (int m = -n; m <= +n; m++) {
-								if (abs(k - m) <= j - n) {
-									tmp = children[i]->M[j - n][k - m] * A(n, m) * A(j - n, k - m) * pow(r, n) * Y(n, -m) / A(j, k);
-									M[j][k] += Complex::ipow(abs(k) - abs(m) - abs(k - m)) * tmp;
-								}
-							}
-						}
-					} else {
-						M[j][k] += children[i]->M[j][k];
+			Xcom /= M0;
+			for (int i = 0; i < NCHILD; i++) {
+				dX = Xcom - children[i]->Xcom;
+				for (int n = 0; n < 3; n++) {
+					for (int m = 0; m < 3; m++) {
+						M2[n][m] += children[i]->M2[n][m];
+						M2[n][m] += dX[n] * dX[m] * children[i]->M0;
 					}
 				}
 			}
 		}
 	} else {
+		M0 = source;
 		Xcom = X;
-		M[0][0].set_real(-source);
-		M[0][0].set_imag(0.0);
-		for (int l = 1; l <= FMM_POLE_MAX; l++) {
-			for (int m = -l; m <= l; m++) {
-				M[l][m] = 0.0;
-			}
-		}
 	}
 }
-
 void FMM::compute_interactions() {
-	Complex tmp;
-	Real r;
-	_3Vec dX;
-	for (int j = 0; j <= FMM_POLE_MAX; j++) {
-		for (int k = -j; k <= j; k++) {
-			L[j][k] = 0.0;
-			for (int i = 0; i < interaction_count; i++) {
-				dX = interactions[i]->Xcom - Xcom;
-				Y.generate(dX);
-				r = sqrt(dX.dot(dX));
-				for (int n = 0; n <= FMM_POLE_MAX - j; n++) {
-					for (int m = -n; m <= +n; m++) {
-						tmp = interactions[i]->M[n][m] * A(n, m) * A(j, k) * pow(r, -(j + n + 1)) * Y(j + n, m - k) / A(j + n, m - k);
-						L[j][k] += Complex::ipow(abs(k - m) - abs(k) - abs(m)) * neg_one_pow(n) * tmp;
-					}
-				}
-
-			}
-		}
-	}
+	FMM* I;
 	if (refined) {
 		for (int i = 0; i < NCHILD; i++) {
 			children[i]->compute_interactions();
 		}
 	}
-
+	C0 = 0.0;
+	for (int n = 0; n < 3; n++) {
+		C1[n] = 0.0;
+		for (int m = 0; m < 3; m++) {
+			C2[n][m] = 0.0;
+			for (int k = 0; k < 3; k++) {
+				C3[n][m][k] = 0.0;
+			}
+		}
+	}
+	Real D0;
+	Real D1[3];
+	Real D2[3][3];
+	Real D3[3][3][3];
+	for (int i = 0; i < interaction_count; i++) {
+		I = interactions[i];
+		_3Vec R = Xcom - I->Xcom;
+		Real rinv = 1.0 / sqrt(R.dot(R));
+		Real rinv3 = rinv * rinv * rinv;
+		Real rinv5 = rinv * rinv * rinv3;
+		Real rinv7 = rinv * rinv * rinv5;
+		Real d0 = -rinv;
+		Real d1 = +rinv3;
+		Real d2 = -3.0 * rinv5;
+		Real d3 = +15.0 * rinv7;
+		C0 += I->M0 * d0;
+		for (int n = 0; n < 3; n++) {
+			C0 += I->M2[n][n] * d1 * 0.5;
+			C1[n] += I->M0 * d1 * R[n];
+			for (int m = 0; m < 3; m++) {
+				C0 += I->M2[n][m] * d2 * 0.5 * R[n] * R[m];
+				C1[n] += I->M2[m][m] * d2 * 0.5 * R[n];
+				C1[n] += I->M2[m][n] * d2 * 1.0 * R[m];
+				C2[n][m] += I->M0 * kD[n][m] * d1;
+				C2[n][m] += I->M0 * R[n] * R[m] * d2;
+				for (int q = 0; q < 3; q++) {
+					C1[n] += I->M2[m][q] * d3 * 0.5 * R[n] * R[m] * R[q];
+					C3[n][m][q] += I->M0 * d2 * kD[n][m] * R[q];
+					C3[n][m][q] += I->M0 * d2 * kD[m][q] * R[n];
+					C3[n][m][q] += I->M0 * d2 * kD[q][n] * R[m];
+					C3[n][m][q] += I->M0 * d3 * R[n] * R[m] * R[q];
+				}
+			}
+		}
+	}
 }
 
 void FMM::local_expansion() {
-	Complex tmp;
-	Real r;
-	_3Vec dX;
 	if (parent != NULL) {
-		for (int j = 0; j <= FMM_POLE_MAX; j++) {
-			for (int k = -j; k <= j; k++) {
-				dX = parent->Xcom - Xcom;
-				r = sqrt(dX.dot(dX));
-				if (r != 0.0) {
-					Y.generate(dX);
-					for (int n = j; n <= FMM_POLE_MAX; n++) {
-						for (int m = -n; m <= +n; m++) {
-							if (abs(m - k) <= n - j) {
-								tmp = parent->L[n][m] * A(j, k) * A(n - j, m - k) * pow(r, n - j) * Y(n - j, m - k) / A(n, m);
-								L[j][k] += Complex::ipow(abs(m) - abs(k - m) - abs(k)) * neg_one_pow(n + j) * tmp;
-							}
-						}
-					}
-				} else {
-					L[j][k] += parent->L[j][k];
+		FMM* p = parent;
+		_3Vec Y = Xcom - p->Xcom;
+		C0 += p->C0;
+		for (int n = 0; n < 3; n++) {
+			C0 += Y[n] * p->C1[n];
+			C1[n] += p->C1[n];
+			for (int m = 0; m < 3; m++) {
+				C0 += Y[n] * Y[m] * p->C2[n][m] * 0.5;
+				C1[n] += Y[m] * p->C2[n][m];
+				C2[n][m] += p->C2[n][m];
+				for (int q = 0; q < 3; q++) {
+					C0 += Y[n] * Y[m] * Y[q] * p->C3[n][m][q] * (1.0 / 6.0);
+					C1[n] += Y[m] * Y[q] * p->C3[n][m][q] * 0.5;
+					C2[n][m] += Y[q] * p->C3[n][m][q];
+					C3[n][m][q] += p->C3[n][m][q];
 				}
 			}
 		}
@@ -135,27 +130,28 @@ void FMM::local_expansion() {
 }
 
 void FMM::compute_gravity() {
-	Real direct, r;
-	_3Vec dist;
-	Complex direct_complex;
+	Real phi0, r;
+	_3Vec dX, g0;
 	if (!refined) {
-		direct = 0.0;
+		phi0 = 0.0;
+		g0 = 0.0;
 		for (int i = 0; i < NNEIGHBORS; i++) {
 			if (neighbors[i] != NULL) {
-				dist = X - neighbors[i]->X;
-				r = sqrt(dist.dot(dist));
-				direct += -neighbors[i]->source / r;
+				dX = X - neighbors[i]->X;
+				r = sqrt(dX.dot(dX));
+				phi0 += -neighbors[i]->source / r;
+				g0 -= dX * (neighbors[i]->source / (r * r * r));
 			}
 		}
-		direct_complex.set_imag(0.0);
-		direct_complex.set_real(direct);
-		L[0][0] += direct_complex;
 	} else {
 		for (int i = 0; i < NCHILD; i++) {
 			children[i]->compute_gravity();
 		}
 	}
-	phi = L[0][0].real();
+	phi = C0 + phi0;
+	for (int i = 0; i < 3; i++) {
+		g[i] = -C1[i] + g0[i];
+	}
 }
 
 template<int N>
@@ -182,8 +178,10 @@ void FMM::form_tree<1>(FMM* tree, Real rho[1][1][1]) {
 	tree->source = rho[0][0][0] * pow(tree->dx, 3);
 }
 
+double ___mtot;
+
 void FMM::run(int, char*[]) {
-#define NX 32
+#define NX 64
 	FMM* root;
 	static Real rho[NX][NX][NX];
 	Real x, y, z, r, m;
@@ -191,12 +189,17 @@ void FMM::run(int, char*[]) {
 	for (int i = 0; i < NX; i++) {
 		for (int j = 0; j < NX; j++) {
 			for (int k = 0; k < NX; k++) {
-				x = Real(i - NX / 2) / Real(NX / 2);
-				y = Real(j - NX / 2) / Real(NX / 2);
-				z = Real(k - NX / 2) / Real(NX / 2);
+				x = (Real(i - NX / 2) / Real(NX / 2) + 1.0 / NX) * 0.5;
+				y = (Real(j - NX / 2) / Real(NX / 2) + 1.0 / NX) * 0.5;
+				z = (Real(k - NX / 2) / Real(NX / 2) + 1.0 / NX) * 0.5;
+				x -= 0.1;
+				y -= 0.01;
+				z -= 0.001;
 				r = sqrt(x * x + y * y + z * z);
-				if (r < 1.0 / NX) {
-					rho[i][j][k] = pow(1.0 / NX, -3);
+				if (r < TEST_RADIUS) {
+					//		const double dx = 0.5 / NX;
+					const double v0 = (4.0 / 3.0) * M_PI * pow(TEST_RADIUS, 3);
+					rho[i][j][k] = 1.0 / v0;
 				} else {
 					rho[i][j][k] = 0.0;
 				}
@@ -204,6 +207,7 @@ void FMM::run(int, char*[]) {
 			}
 		}
 	}
+	___mtot = m;
 	printf("mass = %e\n", m);
 	root = new FMM();
 	printf("Form tree\n");
@@ -221,27 +225,35 @@ void FMM::run(int, char*[]) {
 	printf("Compute gravity\n");
 	root->compute_gravity();
 	printf("Error is %e\n", root->error());
+	printf("dMomentum is %e %e %e\n", root->dS[0], root->dS[1], root->dS[2]);
 }
 
-Real FMM::error() const {
+Real FMM::error() {
 	Real e, a, n, m;
 	if (refined) {
 		e = 0.0;
+		dS = 0.0;
 		for (int i = 0; i < NCHILD; i++) {
 			e += children[i]->error();
+			dS += children[i]->dS;
 		}
 	} else {
 		m = 1.0;
+		X[0] -= 0.1;
+		X[1] -= 0.01;
+		X[2] -= 0.001;
 		Real r = sqrt(X.dot(X));
-		if (r < dx) {
-			a = -3.0 / 2.0 / dx;
+		if (r < TEST_RADIUS) {
+			a = -1.0 / (2.0 * TEST_RADIUS) * (3.0 - r * r / TEST_RADIUS / TEST_RADIUS);
 		} else {
 			a = -1.0 / r;
 		}
+		a *= ___mtot;
 		n = phi;
-		e = pow(1.0 - n / a, 2) * pow(dx, 3);
-		if (fabs(X[2]) < dx) {
-			printf("%e %e %e %e %e %e\n", Xcom[0], Xcom[1], Xcom[2], a, n, source);
+		e = fabs(log(n / a)) / (NX * NX * NX);
+		dS = g * source;
+		if (X[2] < dx && X[1] < dx && X[2] > 0.0 * dx && X[1] > 0.0 * dx) {
+			printf("%e %e %e %e %e %e %e %e %e\n", X[0], X[1], X[2], a, n, source, g[0], g[1], g[2]);
 		}
 	}
 	return e;
@@ -267,15 +279,11 @@ FMM::FMM(Real _dx, int lev) {
 		neighbors[i] = NULL;
 	}
 	int n = 0;
-	for (int l = 0; l <= FMM_POLE_MAX; l++) {
-		M[l] = mspace + n + l;
-		L[l] = lspace + n + l;
-		n += 2 * l + 1;
-	}
 }
 
 void FMM::refine() {
 	refined = true;
+//	printf( "%e\n", dx);
 	for (int i = 0; i < NCHILD; i++) {
 		children[i] = new FMM(dx * 0.5, level + 1);
 		children[i]->parent = this;
@@ -409,10 +417,6 @@ FMM::~FMM() {
 void FMM::init() {
 	static bool initialized = false;
 	if (!initialized) {
-		factorial[0] = 1;
-		for (int l = 1; l <= 2 * FMM_POLE_MAX; l++) {
-			factorial[l] = l * factorial[l - 1];
-		}
 	}
 }
 

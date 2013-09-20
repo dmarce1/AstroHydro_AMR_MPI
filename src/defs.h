@@ -6,8 +6,8 @@
 //#define SOD
 //#define POISSON_TEST
 //#define SINGLE_STAR
-#define BINARY_STAR
-//#define FMM_TEST
+//#define BINARY_STAR
+#define FMM_TEST
 //#define RADIATION_TEST
 
 #define USE_HYDRO_GRID

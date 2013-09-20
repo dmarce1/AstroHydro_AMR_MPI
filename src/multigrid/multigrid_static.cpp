@@ -14,9 +14,9 @@ MPI_Datatype MultiGrid::MPI_recv_amr_child_t[8];
 Real MultiGrid::h0 = (2.0 * GRID_DIM / Real(PNX - 2));
 _3Vec MultiGrid::origin;
 
-MultiGrid::ifunc_t MultiGrid::es[MG_ES_STAGE_MAX + 1] =
-		{ &MultiGrid::phi_real_boundary_begin_loop, &MultiGrid::phi_real_boundary_communicate, &MultiGrid::phi_real_boundary_wait,
-				&MultiGrid::phi_real_boundary_end_loop, &MultiGrid::phi_amr_boundary_communicate, &MultiGrid::phi_amr_boundary_wait, &MultiGrid::null };
+MultiGrid::ifunc_t MultiGrid::es[MG_ES_STAGE_MAX + 1] = { &MultiGrid::phi_real_boundary_begin_loop, &MultiGrid::phi_real_boundary_communicate,
+		&MultiGrid::phi_real_boundary_wait, &MultiGrid::phi_real_boundary_end_loop, &MultiGrid::phi_amr_boundary_communicate, &MultiGrid::phi_amr_boundary_wait,
+		&MultiGrid::null };
 
 MultiGrid::ifunc_t MultiGrid::cs[COMPUTE_STAGE_MAX + 1] = { &MultiGrid::vdown_init_recv, &MultiGrid::vdown_init_recv_wait, &MultiGrid::vdown_init_compute,
 		&MultiGrid::vdown_init_adjust_recv, &MultiGrid::vdown_init_adjust_recv_wait, &MultiGrid::vdown_init_store_dphi, &MultiGrid::relax_begin_down_loop,
@@ -59,7 +59,7 @@ Real MultiGrid::get_phi_at(Real x, Real y, Real z) {
 			}
 		}
 	}
-	DONE: tmp = p;
+	tmp = p;
 	MPI_Allreduce(&tmp, &p, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
 	return p;
 }

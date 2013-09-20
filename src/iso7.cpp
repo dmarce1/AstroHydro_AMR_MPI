@@ -25,6 +25,7 @@ void nuclear_burn(double dt, double density, double ein, double T, double xx[ISO
 void invert_eos_ed(double* T, double* cs, double* p, double d, double e, double abar, double zbar) {
 	double dpdd, dpdt, dedt, dpde, cs2;
 	int fail;
+#ifdef STELLAR_STATE
 	d = max(d, State::rho_floor);
 	e = max(e, eos_energy(d, 2.0e+3, abar, zbar));
 	invert_helm_ed_c_interface_(&d, T, &e, p, &abar, &zbar, &dpdd, &dpdt, &dedt, &fail);
@@ -35,6 +36,7 @@ void invert_eos_ed(double* T, double* cs, double* p, double d, double e, double 
 		printf( "%e %e %e %e\n", d, *T, abar, zbar);
 		abort();
 	}
+#endif
 }
 
 double eos_energy(double d, double T, double abar, double zbar) {

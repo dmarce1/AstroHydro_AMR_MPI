@@ -15,7 +15,7 @@ bool refined;
 	FMM* children[8];
 	FMM* siblings[6];
 	FMM* neighbors[6 + 12 + 8];
-	FMM* interactions[189];
+	FMM* interactions[189+6+12+8];
 	int interaction_count;
 	FMM* parent;
 	_3Vec X, Xcom;
@@ -51,7 +51,7 @@ public:
 	template<int N>
 	static void form_tree(FMM* tree, Real rho[N][N][N]);
 	static void run(int, char*[]);
-	Real error() ;
+	Vector<Real,4> error() ;
 };
 
 #endif

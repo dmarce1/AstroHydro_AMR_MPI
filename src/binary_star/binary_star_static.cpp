@@ -592,10 +592,10 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 //	asprintf(&fname, "mv -f checkpoint.hello.%i.bin checkpoint.goodbye.%i.bin 2> /dev/null\n", MPI_rank(), MPI_rank());
 //	system(fname);
 //	free(fname);
-
-	if (MPI_rank() != 0) {
-		MPI_Recv(NULL, 0, MPI_BYTE, 0, MPI_rank() - 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-	}
+	char dummy;
+  if (MPI_rank() != 0) {
+          MPI_Recv(&dummy, 1, MPI_BYTE,  MPI_rank() - 1,0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+  }
 	asprintf(&fname, "checkpoint.%s.%i.bin", idname, MPI_rank());
 	fp = fopen(fname, "wb");
 	free(fname);
@@ -610,9 +610,9 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 	fwrite(&i2, sizeof(int), 1, fp);
 	get_root()->write_checkpoint(fp);
 	fclose(fp);
-	if (MPI_rank() < MPI_size() -1) {
-		MPI_Send(NULL, 0, MPI_BYTE, 0, MPI_rank() + 1, MPI_COMM_WORLD );
-	}
+  if (MPI_rank() < MPI_size() -1) {
+          MPI_Send(&dummy, 1, MPI_BYTE, MPI_rank() + 1, 0,MPI_COMM_WORLD );
+  }
 }
 
 void BinaryStar::run(int argc, char* argv[]) {

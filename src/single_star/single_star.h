@@ -9,13 +9,18 @@
 #define SINGLE_STAR_H_
 
 #include "../hydro_grav_grid/hydro_grav_grid.h"
+#include "../hydro_FMM_grid/hydro_FMM_grid.h"
 
 #ifdef HYDRO_GRAV_GRID
 
-class SingleStar: public HydroGravGrid {
+#ifdef USE_FMM
+class SingleStar: public HydroFMMGrid {
+#else
+	class SingleStar: public HydroGravGrid {
+#endif
 private:
-	static Vector<Real,2>* radial_avg_tmp;
-	static Vector<Real,2>* radial_avg;
+	static Vector<Real, 2>* radial_avg_tmp;
+	static Vector<Real, 2>* radial_avg;
 	static int* radial_bin_cnt;
 	static int radial_N;
 	static int* radial_bin_cnt_tmp;
@@ -42,10 +47,21 @@ public:
 			return U.vz();
 		case 6:
 			return U.temp(x);
-		default:
-			//	case 7:
+#ifdef USE_FMM
+		case 7:
+			return get_phi(i, j, k);
+		case 8:
+			return gx(i, j, k);
+		case 9:
+			return gy(i, j, k);
+		case 10:
+			return gz(i, j, k);
+#else
+			default:
 			return get_phi(i - BW + 1, j - BW + 1, k - BW + 1);
+#endif
 		}
+		return 0.0;
 	}
 	virtual const char* output_field_names(int i) const {
 		switch (i) {
@@ -63,13 +79,23 @@ public:
 			return "vz";
 		case 6:
 			return "T";
-		default:
-			//	case 7:
+		case 7:
 			return "phi";
+		case 8:
+			return "gx";
+		case 9:
+			return "gy";
+		case 10:
+			return "gz";
 		}
+		return "";
 	}
 	virtual int nvar_output() const {
+#ifdef USE_FMM
+		return 11;
+#else
 		return 8;
+#endif
 	}
 	static void run(int, char*[]);
 	virtual SingleStar* new_octnode() const {

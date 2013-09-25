@@ -35,6 +35,7 @@ src/multigrid \
 src/hydro_rad_grid \
 src/hydro_grid \
 src/hydro_grav_grid \
+src/hydro_FMM_grid \
 src/euler_state \
 src/blast_wave \
 src/binary_star \

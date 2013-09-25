@@ -11,6 +11,10 @@
 #include <stdio.h>
 #include "../physical_constants.h"
 
+#ifndef NFRAC
+#define FRAC 1
+#endif
+
 #define STATE_NF (7+NFRAC)
 
 class StellarState: public Vector<Real, STATE_NF> {

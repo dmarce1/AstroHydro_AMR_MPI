@@ -170,24 +170,6 @@ void MultiGrid::MPI_datatypes_init() {
 							}
 						}
 					}
-					/*		for (int k0 = zlb; k0 <= zub; k0++) {
-					 for (int j0 = ylb; j0 <= yub; j0++) {
-					 use(xlb, j0, k0) = true;
-					 use(xub, j0, k0) = true;
-					 }
-					 }
-					 for (int k0 = zlb; k0 <= zub; k0++) {
-					 for (int j0 = xlb; j0 <= xub; j0++) {
-					 use(j0, ylb, k0) = true;
-					 use(j0, yub, k0) = true;
-					 }
-					 }
-					 for (int k0 = ylb; k0 <= yub; k0++) {
-					 for (int j0 = xlb; j0 <= xub; j0++) {
-					 use(j0, k0, zlb) = true;
-					 use(j0, k0, zub) = true;
-					 }
-					 }*/
 					for (int k0 = zlb; k0 <= zub; k0++) {
 						for (int j0 = ylb; j0 <= yub; j0++) {
 							for (int i0 = xlb; i0 <= xub; i0++) {

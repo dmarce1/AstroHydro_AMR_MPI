@@ -95,6 +95,8 @@ public:
 		case 10:
 			return get_fz(i - BW + 1, j - BW + 1, k - BW + 1);
 		}
+		assert(false);
+		return 0.0;
 	}
 	virtual const char* output_field_names(int i) const {
 		switch (i) {
@@ -121,6 +123,8 @@ public:
 		case 10:
 			return "gz";
 		}
+		assert(false);
+		return "";
 	}
 	virtual int nvar_output() const {
 		return 11;

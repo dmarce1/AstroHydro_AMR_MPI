@@ -18,8 +18,11 @@ SingleStar::~SingleStar() {
 
 Real SingleStar::radius(int i, int j, int k) {
 	const Real x0 = 1.0e+9;
-	const Real y0 = -1.0e+8;
-	const Real z0 = 0.0;
+	const Real y0 = 1.0e+8;
+	const Real z0 = 0.0e+9;
+	/*const Real x0 = 0.0;
+	const Real y0 = 0.0;
+	const Real z0 = 0.0;*/
 	return sqrt(pow(xc(i) - x0, 2) + pow(yc(j) - y0, 2) + pow(zc(k) - z0, 2));
 }
 
@@ -31,11 +34,11 @@ void SingleStar::set_refine_flags() {
 	if (!wd_init) {
 		wd_init = true;
 		wd_rho0(WDM, &wd_d0, &wd_r0);
-		State::rho_floor = wd_d0 * 1.0e-12;
+		State::rho_floor = wd_d0 * 1.0e-15;
 		printf("%e %e\n", wd_d0, wd_r0);
 		//State::nohydro = true;
 	}
-	if (get_level() < 1) {
+	if (get_level() < 2) {
 		for (int i = 0; i < OCT_NCHILD; i++) {
 			set_refine_flag(i, true);
 		}
@@ -47,7 +50,7 @@ void SingleStar::set_refine_flags() {
 				for (int i = BW; i < GNX - BW; i++) {
 					c.set_x(2 * i / GNX);
 					if (!get_refine_flag(c)) {
-						if ((*this)(i, j, k).rho() > wd_d0 * 1.0e-6) {
+						if ((*this)(i, j, k).rho() > wd_d0 * 1.0e-5) {
 							//					if (get_shadow_error(i, j, k).mag() > 0.00001 * (1 << 2 * get_level())) {
 							set_refine_flag(c, true);
 						} else if (get_time() == 0.0 && radius(i, j, k) < get_dx()*2.0) {

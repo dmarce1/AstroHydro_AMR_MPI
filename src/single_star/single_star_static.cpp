@@ -42,7 +42,11 @@ void SingleStar::read_from_file(const char* str, int* i1, int* i2) {
 	for (int i = 0; i < count; i++) {
 		dynamic_cast<MultiGrid*>(OctNode::get_local_node(i))->phi_calc_amr_bounds();
 	}
+#ifdef USE_FMM
+	FMM_solve();
+#else
 	solve_poisson();
+#endif
 }
 
 void SingleStar::write_to_file(int i1, int i2, const char* idname) {
@@ -86,6 +90,9 @@ void SingleStar::run(int argc, char* argv[]) {
 
 	if (argc == 2) {
 		setup_grid_structure();
+#ifdef USE_FMM
+	FMM_solve();
+#endif
 		if (OUTPUT_TIME_FREQ <= TIME_MAX ) {
 			get_root()->output("X", 0.0, GNX, BW);
 		}
@@ -94,7 +101,7 @@ void SingleStar::run(int argc, char* argv[]) {
 	}
 
 
-	hydro_time = poisson_boundary_time = poisson_interior_time = 0.0;
+
 
 	do {
 		if (step_cnt % CHECKPT_FREQ == 0) {
@@ -125,18 +132,25 @@ void SingleStar::run(int argc, char* argv[]) {
 		}
 		Vector<State, 4> vec = dynamic_cast<HydroGrid*>(get_root())->state_sum();
 		State sum = vec[0];
-		_3Vec com = get_center_of_mass();
+#ifndef USE_FMM
+		_3Vec com =dynamic_cast<Poisson*>(get_root())->get_center_of_mass();
+#else
+		com_sum();
+		_3Vec com = 0.0;
+#endif
 		if (MPI_rank() == 0) {
 			FILE* fp = fopen("sums.dat", "at");
 			fprintf(fp, "%e %e %e %e %e %e %e %e\n", get_time(), sum[0], sum[1], sum[2], sum[3], sum[4] + 0.5 * sum[6], sum[State::frac_index + 0],
 					sum[State::frac_index + 1]);
 			fclose(fp);
+#ifndef USE_FMM
 			fp = fopen("com.dat", "at");
-			fprintf(fp, "%e %e %e %e\n", get_time(), com[0], com[1], com[2]);
+			fprintf(fp, "%e %.14e %.14e %.14e\n", get_time(), com[0], com[1], com[2]);
 			fclose(fp);
+#endif
 		}
 	} while (!last_step);
-	if (MPI_rank() == 0) {
+/*	if (MPI_rank() == 0) {
 		char* str;
 		if (asprintf(&str, "time.%i.txt", get_max_level_allowed()) == 0) {
 			printf("Unable to create filename\n");
@@ -147,7 +161,7 @@ void SingleStar::run(int argc, char* argv[]) {
 			fclose(fp);
 			free(str);
 		}
-	}
+	}*/
 }
 #endif
 #endif

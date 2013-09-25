@@ -21,6 +21,7 @@ RM := rm -rf
 -include src/hydro_rad_grid/subdir.mk
 -include src/hydro_grid/subdir.mk
 -include src/hydro_grav_grid/subdir.mk
+-include src/hydro_FMM_grid/subdir.mk
 -include src/euler_state/subdir.mk
 -include src/blast_wave/subdir.mk
 -include src/binary_star/subdir.mk
@@ -61,7 +62,7 @@ all: AstroHydro_AMR_MPI
 AstroHydro_AMR_MPI: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Linker'
-	mpicc -openmp -L"/home/dmarce1/AstroHydro_AMR_MPI/iso7_src" -o "AstroHydro_AMR_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
+	mpicc -L"/home/dmarce1/AstroHydro_AMR_MPI/iso7_src" -o "AstroHydro_AMR_MPI" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

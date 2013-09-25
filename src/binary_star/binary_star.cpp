@@ -77,7 +77,47 @@ BinaryStar::~BinaryStar() {
 Real BinaryStar::radius(int i, int j, int k) {
 	return sqrt(xc(i) * xc(i) + yc(j) * yc(j) + zc(k) * zc(k));
 }
-
+void BinaryStar::set_refine_flags() {
+        double refine_adjustment = 10.0;
+        ChildIndex c;
+        if (get_level() < 1) {
+                for (int i = 0; i < OCT_NCHILD; i++) {
+                        set_refine_flag(i, true);
+                }
+        } else if (get_level() < get_max_level_allowed()) {
+                Real mass_min, dxmin, vmin, this_mass;
+                dxmin = dynamic_cast<BinaryStar*>(get_root())->get_dx() / Real(1 << OctNode::get_max_level_allowed());
+                vmin = dxmin * dxmin * dxmin;
+                mass_min = refine_floor * vmin * refine_adjustment;
+                for (int k = BW; k < GNX - BW; k++) {
+                        c.set_z(2 * k / GNX);
+                        for (int j = BW; j < GNX - BW; j++) {
+                                c.set_y(2 * j / GNX);
+                                for (int i = BW; i < GNX - BW; i++) {
+                                        c.set_x(2 * i / GNX);
+                                        if ((get_level() == get_max_level_allowed() - 1 && (*this)(i, j, k).frac(0) > refine_floor) || get_level() < get_max_level_allowed() - 1) {
+                                                if (!get_refine_flag(c)) {
+                                                        //              set_refine_flag(c, true);
+                                                        Real ra = (X(i, j, k) - a0).mag();
+                                                        Real rd = (X(i, j, k) - d0).mag();
+                                                        if ((*this)(i, j, k).rho() > refine_floor*refine_adjustment) {
+                                                                set_refine_flag(c, true);
+                                                        } else if (get_time() == 0.0 && (ra < get_dx() || rd < get_dx())) {
+                                                                set_refine_flag(c, true);
+                                                        } else/* if (get_time() != 0.0)*/{
+                                                                this_mass = pow(get_dx(), 3) * (*this)(i, j, k).rho();
+                                                                if (this_mass > mass_min) {
+                                                                        set_refine_flag(c, true);
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }
+}
+/*
 void BinaryStar::set_refine_flags() {
 	ChildIndex c;
 	if (get_level() < 1) {
@@ -104,7 +144,7 @@ void BinaryStar::set_refine_flags() {
 								set_refine_flag(c, true);
 							} else if (get_time() == 0.0 && (ra < get_dx() || rd < get_dx())) {
 								set_refine_flag(c, true);
-							} else/* if (get_time() != 0.0)*/{
+							} else{
 								this_mass = pow(get_dx(), 3) * (*this)(i, j, k).rho();
 								if (this_mass > mass_min) {
 									set_refine_flag(c, true);
@@ -117,7 +157,7 @@ void BinaryStar::set_refine_flags() {
 		}
 	}
 }
-
+*/
 void BinaryStar::initialize() {
 	Real K, E1, E2, period, rho_c1, rho_c2;
 	a0 = d0 = 0.0;

@@ -5,22 +5,25 @@
 //#define BLAST_WAVE
 //#define SOD
 //#define POISSON_TEST
-//#define SINGLE_STAR
+#define SINGLE_STAR
 //#define BINARY_STAR
-#define FMM_TEST
+//#define FMM_TEST
 //#define RADIATION_TEST
 
 #define USE_HYDRO_GRID
 
 
+
+
 #ifdef FMM_TEST
-#include "./FMM/FMM.h"
-#include "./FMM/defs.h"
-#undef USE_HYDRO_GRID
-typedef FMM ProblemGrid;
+#define STELLAR_STATE
+#define HYDRO_GRAV_GRID
+#define NFRAC 2
+#include "./hydro_FMM_grid/defs.h"
+#include "stellar_state/state.h"
+class HydroFMMGrid;
+typedef HydroFMMGrid ProblemGrid;
 #endif
-
-
 
 #ifdef BINARY_STAR
 #define STELLAR_STATE
@@ -37,6 +40,7 @@ typedef BinaryStar ProblemGrid;
 #define STELLAR_STATE
 #define NFRAC 2
 #define HYDRO_GRAV_GRID
+#define USE_FMM
 #include "./single_star/defs.h"
 #include "stellar_state/state.h"
 class SingleStar;

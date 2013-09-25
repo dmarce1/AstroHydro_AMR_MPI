@@ -10,6 +10,7 @@
 #include "rotating_disc/rotating_disc.h"
 #include "single_star/single_star.h"
 #include "binary_star/binary_star.h"
+#include "hydro_FMM_grid/hydro_FMM_grid.h"
 
 int Program::run(int argc, char* argv[]) {
 	OctNode::set_max_level_allowed(atoi(argv[1]));

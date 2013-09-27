@@ -4,8 +4,8 @@
 //#define ROTATING_DISC
 //#define BLAST_WAVE
 //#define SOD
-//#define POISSON_TEST
-#define SINGLE_STAR
+#define POISSON_TEST
+//#define SINGLE_STAR
 //#define BINARY_STAR
 //#define FMM_TEST
 //#define RADIATION_TEST
@@ -26,6 +26,7 @@ typedef HydroFMMGrid ProblemGrid;
 #endif
 
 #ifdef BINARY_STAR
+#define USE_FMM
 #define STELLAR_STATE
 #define HYDRO_GRAV_GRID
 #define NFRAC 2
@@ -57,8 +58,13 @@ typedef RadiationTest ProblemGrid;
 #endif
 
 #ifdef POISSON_TEST
-#undef USE_HYDRO_GRID
+#define USE_FMM
+//#define HIORDERFMM
+#define USE_HYDRO_GRID
+//#undef USE_HYDRO_GRID
+#define STELLAR_STATE
 #include "./poisson_test/poisson_test_defs.h"
+#include "./stellar_state/state.h"
 class PoissonTest;
 typedef PoissonTest ProblemGrid;
 #endif

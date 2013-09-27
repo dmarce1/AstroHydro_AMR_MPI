@@ -20,7 +20,7 @@ CPP_DEPS += \
 src/rotating_disc/%.o: ../src/rotating_disc/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Compiler '
-	mpicc -O3 -xHOST -ipo -no-prec-div -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
+	mpicc -DNDEBUG -fp-model fast=2 -O3 -xHOST -ipo -no-prec-div -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

@@ -10,7 +10,8 @@
 #define MAXDTINC           (1.25)
 #define GRID_CFL_FACTOR    0.4
 #define MAXINITDT          (1.0e-2)
-
-#define USE_FMM
-
+#define INX 8
+#define BW 3
+#define NFRAC 2
+#define GNX 14
 #endif

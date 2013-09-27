@@ -670,10 +670,14 @@ void BinaryStar::run(int argc, char* argv[]) {
 			}
 			fprintf(fp, "\n");
 			fclose(fp);
+#ifdef USE_FMM
+			com_sum();
+#else
 			_3Vec com = get_center_of_mass();
 			fp = fopen("com.dat", "at");
 			fprintf(fp, "%e %e %e %e %e %e %e\n", get_time(), com[0], com[1], com[2], com_vel_correction[0], com_vel_correction[1], com_vel_correction[2]);
 			fclose(fp);
+#endif
 		}
 		//	State::set_drift_tor(((lz_t0 - sum[State::sy_index]) / sum[State::d_index])/dt);
 		Real ofreq = (OUTPUT_TIME_FREQ * (2.0 * M_PI) / State::get_omega());
@@ -686,24 +690,17 @@ void BinaryStar::run(int argc, char* argv[]) {
 		}
 		dt = next_dt(&do_output, &last_step, &ostep_cnt, ofreq);
 		step(dt);
+#ifndef USE_FMM
 		_3Vec com = get_center_of_mass();
 		Real com_omega = State::get_omega() * 100.0;
 		com_vel_correction -= (com_vel_correction * 2.0 + com * com_omega) * dt * com_omega;
 		State::set_drift_vel(-com_vel_correction);
+#else
+		State::set_drift_vel(_3Vec(0.0));
+#endif
 		diagnostics(dt);
 		if (step_cnt % (GNX - 2 * BW)== 0){
 			check_for_refine();
-			/*		if (OctNode::get_node_cnt() > NGRID_LIMIT) {
-			 if (MPI_rank() == 0) {
-			 printf("Changing refinement criteria from %e to %e\n", BinaryStar::refine_floor, BinaryStar::refine_floor * 1.258925412);
-			 }
-			 BinaryStar::refine_floor *= 1.1;
-			 } else if (OctNode::get_node_cnt() < NGRID_LIMIT / 10.0) {
-			 if (MPI_rank() == 0) {
-			 printf("Changing refinement criteria from %e to %e\n", BinaryStar::refine_floor, BinaryStar::refine_floor / 1.258925412);
-			 }
-			 BinaryStar::refine_floor /= 1.258925412;
-			 }*/
 		}
 		step_cnt++;
 		if (MPI_rank() == 0) {

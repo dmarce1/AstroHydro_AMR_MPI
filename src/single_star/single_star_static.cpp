@@ -140,7 +140,7 @@ void SingleStar::run(int argc, char* argv[]) {
 #endif
 		if (MPI_rank() == 0) {
 			FILE* fp = fopen("sums.dat", "at");
-			fprintf(fp, "%e %e %e %e %e %e %e %e\n", get_time(), sum[0], sum[1], sum[2], sum[3], sum[4] + 0.5 * sum[6], sum[State::frac_index + 0],
+			fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", get_time(), sum[0], sum[1], sum[2], sum[3], sum[4], sum[5] + 0.5 * sum[7], sum[State::frac_index + 0],
 					sum[State::frac_index + 1]);
 			fclose(fp);
 #ifndef USE_FMM

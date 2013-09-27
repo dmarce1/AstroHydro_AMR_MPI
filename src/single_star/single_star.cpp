@@ -17,8 +17,8 @@ SingleStar::~SingleStar() {
 }
 
 Real SingleStar::radius(int i, int j, int k) {
-	const Real x0 = 1.0e+9;
-	const Real y0 = 1.0e+8;
+	const Real x0 = 2.0e+10;
+	const Real y0 = 2.0e+8;
 	const Real z0 = 0.0e+9;
 	/*const Real x0 = 0.0;
 	const Real y0 = 0.0;

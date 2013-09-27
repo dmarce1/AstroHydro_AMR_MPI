@@ -9,10 +9,14 @@
 #define BINARY_STAR_H_
 
 #include "../hydro_grav_grid/hydro_grav_grid.h"
+#include "../hydro_FMM_grid/hydro_FMM_grid.h"
 
 #ifdef HYDRO_GRAV_GRID
-
-class BinaryStar: public HydroGravGrid {
+#ifdef USE_FMM
+class BinaryStar: public HydroFMMGrid {
+#else
+	class BinaryStar: public HydroGravGrid {
+#endif
 private:
 	static Real refine_floor;
 	static Real code_to_cm, code_to_s, code_to_K, code_to_g;
@@ -86,15 +90,27 @@ public:
 			return U.vz();
 		case 6:
 			return U.temp(x);
-		case 7:
+#ifndef USE_FMM
+			case 7:
 			return get_phi(i - BW + 1, j - BW + 1, k - BW + 1);
-		case 8:
+			case 8:
 			return get_fx(i - BW + 1, j - BW + 1, k - BW + 1);
-		case 9:
+			case 9:
 			return get_fy(i - BW + 1, j - BW + 1, k - BW + 1);
-		case 10:
+			case 10:
 			return get_fz(i - BW + 1, j - BW + 1, k - BW + 1);
 		}
+#else
+		case 7:
+			return get_phi(i, j, k);
+		case 8:
+			return gx(i, j, k);
+		case 9:
+			return gy(i, j, k);
+		case 10:
+			return gz(i, j, k);
+		}
+#endif
 		assert(false);
 		return 0.0;
 	}

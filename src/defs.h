@@ -59,12 +59,14 @@ typedef RadiationTest ProblemGrid;
 
 #ifdef POISSON_TEST
 #define USE_FMM
-//#define HIORDERFMM
-#define USE_HYDRO_GRID
-//#undef USE_HYDRO_GRID
-#define STELLAR_STATE
 #include "./poisson_test/poisson_test_defs.h"
+#ifdef USE_FMM
+#define USE_HYDRO_GRID
+#define STELLAR_STATE
 #include "./stellar_state/state.h"
+#else
+#undef USE_HYDRO_GRID
+#endif
 class PoissonTest;
 typedef PoissonTest ProblemGrid;
 #endif

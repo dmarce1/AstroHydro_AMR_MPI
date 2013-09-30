@@ -14,20 +14,18 @@ int l1count = 0;
 int l2count = 0;
 
 HydroFMMGrid::ifunc_t HydroFMMGrid::cs[FSTAGE + 1] = { &HydroFMMGrid::moments_recv, &HydroFMMGrid::moments_recv_wait, &HydroFMMGrid::moments_send,
-		&HydroFMMGrid::moments_send_wait, &HydroFMMGrid::moments_communicate_x, &HydroFMMGrid::moments_communicate_wait_x, &HydroFMMGrid::moments_communicate_y,
-		&HydroFMMGrid::moments_communicate_wait_y, &HydroFMMGrid::moments_communicate_z, &HydroFMMGrid::moments_communicate_wait_z,
-		&HydroFMMGrid::moments_communicate_y2, &HydroFMMGrid::moments_communicate_wait_y, &HydroFMMGrid::moments_communicate_x2,
-		&HydroFMMGrid::moments_communicate_wait_x, &HydroFMMGrid::compute_interactions, &HydroFMMGrid::expansion_recv, &HydroFMMGrid::expansion_recv_wait,
-		&HydroFMMGrid::expansion_send, &HydroFMMGrid::expansion_send_wait, &HydroFMMGrid::null };
+		&HydroFMMGrid::moments_send_wait, &HydroFMMGrid::moments_communicate_all, &HydroFMMGrid::moments_communicate_wait_all, &HydroFMMGrid::compute_interactions,
+		&HydroFMMGrid::expansion_recv, &HydroFMMGrid::expansion_recv_wait, &HydroFMMGrid::expansion_send, &HydroFMMGrid::expansion_send_wait, &HydroFMMGrid::null };
 
-MPI_Datatype HydroFMMGrid::MPI_send_bnd1_t[26];
-MPI_Datatype HydroFMMGrid::MPI_recv_bnd1_t[26];
-MPI_Datatype HydroFMMGrid::MPI_send_bnd2_t[6];
-MPI_Datatype HydroFMMGrid::MPI_recv_bnd2_t[6];
+MPI_Datatype HydroFMMGrid::MPI_send_bnd_t[26];
+MPI_Datatype HydroFMMGrid::MPI_recv_bnd_t[26];
 MPI_Datatype HydroFMMGrid::MPI_comm_child1_t[8];
 MPI_Datatype HydroFMMGrid::MPI_comm_child2_t[8];
 MPI_Datatype HydroFMMGrid::MPI_moment_t;
 MPI_Datatype HydroFMMGrid::MPI_taylor_t;
+
+int face_id[26];
+int face_opp_id[26];
 
 void HydroFMMGrid::FMM_solve() {
 	MPI_datatypes_init();
@@ -257,118 +255,31 @@ void HydroFMMGrid::moments_send_wait(int) {
 	}
 }
 
-void HydroFMMGrid::moments_communicate_x(int) {
-	int face, tag_send, tag_recv;
-	OctNode* sibling;
-	for (face = 0; face < 2; face++) {
-		sibling = get_sibling(face);
-		recv_request[face] = MPI_REQUEST_NULL;
-		send_request[face] = MPI_REQUEST_NULL;
-		if (is_real_bound(face)) {
-			tag_send = tag_gen(TAG_RELAX, sibling->get_id(), (face ^ 1), 0);
-			tag_recv = tag_gen(TAG_RELAX, get_id(), face, 0);
-			MPI_Isend(m.ptr(), 1, MPI_send_bnd1_t[face], sibling->proc(), tag_send, MPI_COMM_WORLD, send_request + face);
-			MPI_Irecv(m.ptr(), 1, MPI_recv_bnd1_t[face], sibling->proc(), tag_recv, MPI_COMM_WORLD, recv_request + face);
+void HydroFMMGrid::moments_communicate_all(int) {
+	int dir, tag_send, tag_recv;
+	OctNode* neighbor;
+	find_neighbors();
+	for (dir = 0; dir < 26; dir++) {
+		neighbor = neighbors[dir];
+		if (neighbor == NULL) {
+			recv_request[dir] = MPI_REQUEST_NULL;
+			send_request[dir] = MPI_REQUEST_NULL;
+		} else {
+			assert(dir==face_id[dir]);
+			tag_send = tag_gen(TAG_RELAX, neighbor->get_id(), face_opp_id[dir]);
+			tag_recv = tag_gen(TAG_RELAX, get_id(), face_id[dir]);
+			MPI_Isend(m.ptr(), 1, MPI_send_bnd_t[dir], neighbor->proc(), tag_send, MPI_COMM_WORLD, send_request + dir);
+			MPI_Irecv(m.ptr(), 1, MPI_recv_bnd_t[dir], neighbor->proc(), tag_recv, MPI_COMM_WORLD, recv_request + dir);
 		}
 	}
 	inc_instruction_pointer();
 }
 
-void HydroFMMGrid::moments_communicate_x2(int) {
-	int face, tag_send, tag_recv;
-	OctNode* sibling;
-	for (face = 0; face < 2; face++) {
-		sibling = get_sibling(face);
-		recv_request[face] = MPI_REQUEST_NULL;
-		send_request[face] = MPI_REQUEST_NULL;
-		if (is_real_bound(face)) {
-			tag_send = tag_gen(TAG_RELAX, sibling->get_id(), (face ^ 1), 0);
-			tag_recv = tag_gen(TAG_RELAX, get_id(), face, 0);
-			MPI_Isend(m.ptr(), 1, MPI_send_bnd2_t[face], sibling->proc(), tag_send, MPI_COMM_WORLD, send_request + face);
-			MPI_Irecv(m.ptr(), 1, MPI_recv_bnd2_t[face], sibling->proc(), tag_recv, MPI_COMM_WORLD, recv_request + face);
-		}
-	}
-	inc_instruction_pointer();
-}
-
-void HydroFMMGrid::moments_communicate_y(int) {
-	int face, tag_send, tag_recv;
-	OctNode* sibling;
-	for (face = 2; face < 4; face++) {
-		sibling = get_sibling(face);
-		recv_request[face] = MPI_REQUEST_NULL;
-		send_request[face] = MPI_REQUEST_NULL;
-		if (is_real_bound(face)) {
-			tag_send = tag_gen(TAG_RELAX, sibling->get_id(), (face ^ 1), 1);
-			tag_recv = tag_gen(TAG_RELAX, get_id(), face, 1);
-			MPI_Isend(m.ptr(), 1, MPI_send_bnd1_t[face], sibling->proc(), tag_send, MPI_COMM_WORLD, send_request + face);
-			MPI_Irecv(m.ptr(), 1, MPI_recv_bnd1_t[face], sibling->proc(), tag_recv, MPI_COMM_WORLD, recv_request + face);
-		}
-	}
-	inc_instruction_pointer();
-}
-
-void HydroFMMGrid::moments_communicate_y2(int) {
-	int face, tag_send, tag_recv;
-	OctNode* sibling;
-	for (face = 2; face < 4; face++) {
-		sibling = get_sibling(face);
-		recv_request[face] = MPI_REQUEST_NULL;
-		send_request[face] = MPI_REQUEST_NULL;
-		if (is_real_bound(face)) {
-			tag_send = tag_gen(TAG_RELAX, sibling->get_id(), (face ^ 1), 1);
-			tag_recv = tag_gen(TAG_RELAX, get_id(), face, 1);
-			MPI_Isend(m.ptr(), 1, MPI_send_bnd2_t[face], sibling->proc(), tag_send, MPI_COMM_WORLD, send_request + face);
-			MPI_Irecv(m.ptr(), 1, MPI_recv_bnd2_t[face], sibling->proc(), tag_recv, MPI_COMM_WORLD, recv_request + face);
-		}
-	}
-	inc_instruction_pointer();
-}
-
-void HydroFMMGrid::moments_communicate_wait_y(int) {
+void HydroFMMGrid::moments_communicate_wait_all(int) {
 	int flag_recv, flag_send;
 	bool ready;
-	MPI_Testall(2, recv_request + 2, &flag_recv, MPI_STATUS_IGNORE );
-	MPI_Testall(2, send_request + 2, &flag_send, MPI_STATUS_IGNORE );
-	ready = flag_recv && flag_send;
-	if (ready) {
-		inc_instruction_pointer();
-	}
-}
-
-void HydroFMMGrid::moments_communicate_wait_x(int) {
-	int flag_recv, flag_send;
-	bool ready;
-	MPI_Testall(2, recv_request, &flag_recv, MPI_STATUS_IGNORE );
-	MPI_Testall(2, send_request, &flag_send, MPI_STATUS_IGNORE );
-	ready = flag_recv && flag_send;
-	if (ready) {
-		inc_instruction_pointer();
-	}
-}
-
-void HydroFMMGrid::moments_communicate_z(int) {
-	int face, tag_send, tag_recv;
-	OctNode* sibling;
-	for (face = 4; face < 6; face++) {
-		sibling = get_sibling(face);
-		recv_request[face] = MPI_REQUEST_NULL;
-		send_request[face] = MPI_REQUEST_NULL;
-		if (is_real_bound(face)) {
-			tag_send = tag_gen(TAG_RELAX, sibling->get_id(), (face ^ 1), 2);
-			tag_recv = tag_gen(TAG_RELAX, get_id(), face, 2);
-			MPI_Isend(m.ptr(), 1, MPI_send_bnd1_t[face], sibling->proc(), tag_send, MPI_COMM_WORLD, send_request + face);
-			MPI_Irecv(m.ptr(), 1, MPI_recv_bnd1_t[face], sibling->proc(), tag_recv, MPI_COMM_WORLD, recv_request + face);
-		}
-	}
-	inc_instruction_pointer();
-}
-
-void HydroFMMGrid::moments_communicate_wait_z(int) {
-	int flag_recv, flag_send;
-	bool ready;
-	MPI_Testall(2, recv_request + 4, &flag_recv, MPI_STATUS_IGNORE );
-	MPI_Testall(2, send_request + 4, &flag_send, MPI_STATUS_IGNORE );
+	MPI_Testall(26, recv_request, &flag_recv, MPI_STATUS_IGNORE );
+	MPI_Testall(26, send_request, &flag_send, MPI_STATUS_IGNORE );
 	ready = flag_recv && flag_send;
 	if (ready) {
 		inc_instruction_pointer();
@@ -826,31 +737,15 @@ bool HydroFMMGrid::is_leaf(int i, int j, int k) const {
 	return !ptr->zone_is_refined(i + BW - FBW, j + BW - FBW, k + BW - FBW);
 }
 
-/*
- * XLYL 0
- * XLYU 1
- * XLZL 2
- * XLZU 3
- * XUYL 4
- * XUYU 5
- * XUZL 6
- * XUZU 7
- * YLZL 8
- * YLZU 9
- * YUZL 10
- * YUZU 11
- *
- *XLYLZL
- *XLYLZU
- *XLYUZL
- *XLYUZU
- *XUYLZL
- *XUYLZU
- *XUYUZL
- *XUYUZU
- */
-
 void HydroFMMGrid::find_neighbors() {
+	OctNode* corners[8];
+	OctNode* edges[12];
+	for (int i = 0; i < 12; i++) {
+		edges[i] = NULL;
+	}
+	for (int i = 0; i < 8; i++) {
+		corners[i] = NULL;
+	}
 	if (get_sibling(XL) != NULL) {
 		edges[0] = get_sibling(XL)->get_sibling(YL);
 		edges[1] = get_sibling(XL)->get_sibling(YU);
@@ -858,10 +753,10 @@ void HydroFMMGrid::find_neighbors() {
 		edges[3] = get_sibling(XL)->get_sibling(ZU);
 	}
 	if (get_sibling(XU) != NULL) {
-		edges[5] = get_sibling(XU)->get_sibling(YL);
-		edges[6] = get_sibling(XU)->get_sibling(YU);
-		edges[7] = get_sibling(XU)->get_sibling(ZL);
-		edges[8] = get_sibling(XU)->get_sibling(ZU);
+		edges[4] = get_sibling(XU)->get_sibling(YL);
+		edges[5] = get_sibling(XU)->get_sibling(YU);
+		edges[6] = get_sibling(XU)->get_sibling(ZL);
+		edges[7] = get_sibling(XU)->get_sibling(ZU);
 	}
 	if (get_sibling(YL) != NULL) {
 		edges[0] = get_sibling(YL)->get_sibling(XL);
@@ -888,9 +783,9 @@ void HydroFMMGrid::find_neighbors() {
 		edges[11] = get_sibling(ZU)->get_sibling(YU);
 	}
 	for (int i = 0; i < 8; i++) {
-		int j = (i & 1) + XL;
+		int l = (i & 1) + ZL;
 		int k = ((i & 2) >> 1) + YL;
-		int l = ((i & 4) >> 2) + ZL;
+		int j = ((i & 4) >> 2) + XL;
 		corners[i] = NULL;
 		if (get_sibling(j) != NULL) {
 			if (get_sibling(j)->get_sibling(k) != NULL) {
@@ -910,6 +805,27 @@ void HydroFMMGrid::find_neighbors() {
 			} else if (get_sibling(l)->get_sibling(k) != NULL) {
 				corners[i] = get_sibling(l)->get_sibling(k)->get_sibling(j);
 			}
+		}
+	}
+	for (int i = 0; i < 6; i++) {
+		if (get_sibling(i) != NULL) {
+			neighbors[i] = dynamic_cast<HydroFMMGrid*>(get_sibling(i));
+		} else {
+			neighbors[i] = NULL;
+		}
+	}
+	for (int i = 0; i < 12; i++) {
+		if (edges[i] != NULL) {
+			neighbors[i + 6] = dynamic_cast<HydroFMMGrid*>(edges[i]);
+		} else {
+			neighbors[i + 6] = NULL;
+		}
+	}
+	for (int i = 0; i < 8; i++) {
+		if (corners[i] != NULL) {
+			neighbors[i + 18] = dynamic_cast<HydroFMMGrid*>(corners[i]);
+		} else {
+			neighbors[i + 18] = NULL;
 		}
 	}
 }
@@ -947,94 +863,95 @@ void HydroFMMGrid::MPI_datatypes_init() {
 		const int ube1 = FNX - 1;
 		const int hbn0 = FNX - 1 - FBW;
 		const int lbn0 = FBW;
-		const int hbn1 = FNX - 1;
-		const int lbn1 = 0;
-
+		const int hbn1 = FNX - 1 - FBW;
+		const int lbn1 = FBW;
 		MPI_Type_contiguous(sizeof(Moment), MPI_BYTE, &MPI_moment_t);
 		MPI_Type_commit(&MPI_moment_t);
 		MPI_Type_contiguous(sizeof(Taylor), MPI_BYTE, &MPI_taylor_t);
 		MPI_Type_commit(&MPI_taylor_t);
 
 #define XLYL 0
-#define XLYU 0
-#define XLZL 0
-#define XLZU 0
-#define XUYL 0
-#define XUYU 0
-#define XUZL 0
-#define XUZU 0
-#define YLZL 0
-#define YLZU 0
-#define YUZL 0
-#define YUZU 0
+#define XLYU 1
+#define XLZL 2
+#define XLZU 3
+#define XUYL 4
+#define XUYU 5
+#define XUZL 6
+#define XUZU 7
+#define YLZL 8
+#define YLZU 9
+#define YUZL 10
+#define YUZU 11
+#define XLYLZL 0
+#define XLYLZU 1
+#define XLYUZL 2
+#define XLYUZU 3
+#define XUYLZL 4
+#define XUYLZU 5
+#define XUYUZL 6
+#define XUYUZU 7
 
-		/*XLYLZL
-		 *XLYLZU
-		 *XLYUZL
-		 *XLYUZU
-		 *XUYLZL
-		 *XUYLZU
-		 *XUYUZL
-		 *XUYUZU
-		 */
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + XL, lbi0, ubi0, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + YL, lbn1, hbn1, lbi0, ubi0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + ZL, lbn1, hbn1, lbn1, hbn1, lbi0, ubi0, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XLYL, lbi0, ubi0, lbi0, ubi0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XLYU, lbi0, ubi0, lbi1, ubi1, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XUYL, lbi1, ubi1, lbi0, ubi0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XUYU, lbi1, ubi1, lbi1, ubi1, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XLZL, lbi0, ubi0, lbn0, hbn0, lbi0, ubi0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XLZU, lbi0, ubi0, lbn0, hbn0, lbi1, ubi1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XUZL, lbi1, ubi1, lbn0, hbn0, lbi0, ubi0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + XUZU, lbi1, ubi1, lbn0, hbn0, lbi1, ubi1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + YLZL, lbn0, hbn0, lbi0, ubi0, lbi0, ubi0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + YLZU, lbn0, hbn0, lbi0, ubi0, lbi1, ubi1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + YUZL, lbn0, hbn0, lbi1, ubi1, lbi0, ubi0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + 6 + YUZU, lbn0, hbn0, lbi1, ubi1, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + XU, lbi1, ubi1, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + YU, lbn1, hbn1, lbi1, ubi1, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + ZU, lbn1, hbn1, lbn1, hbn1, lbi1, ubi1, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XLYL, lbe0, ube0, lbe0, ube0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XLYU, lbe0, ube0, lbe1, ube1, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XUYL, lbe1, ube1, lbe0, ube0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XUYU, lbe1, ube1, lbe1, ube1, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XLZL, lbe0, ube0, lbn0, hbn0, lbe0, ube0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XLZU, lbe0, ube0, lbn0, hbn0, lbe1, ube1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XUZL, lbe1, ube1, lbn0, hbn0, lbe0, ube0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + XUZU, lbe1, ube1, lbn0, hbn0, lbe1, ube1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + YLZL, lbn0, hbn0, lbe0, ube0, lbe0, ube0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + YLZU, lbn0, hbn0, lbe0, ube0, lbe1, ube1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + YUZL, lbn0, hbn0, lbe1, ube1, lbe0, ube0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + 6 + YUZU, lbn0, hbn0, lbe1, ube1, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + XL, lbe0, ube0, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + YL, lbn1, hbn1, lbe0, ube0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + ZL, lbn1, hbn1, lbn1, hbn1, lbe0, ube0, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + XL, lbi0, ubi0, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + YL, lbn1, hbn1, lbi0, ubi0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + ZL, lbn1, hbn1, lbn1, hbn1, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + XU, lbe1, ube1, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + YU, lbn1, hbn1, lbe1, ube1, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + ZU, lbn1, hbn1, lbn1, hbn1, lbe1, ube1, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + XU, lbi1, ubi1, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + YU, lbn1, hbn1, lbi1, ubi1, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd1_t + ZU, lbn1, hbn1, lbn1, hbn1, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XLYL, lbi0, ubi0, lbi0, ubi0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XLYU, lbi0, ubi0, lbi1, ubi1, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XUYL, lbi1, ubi1, lbi0, ubi0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XUYU, lbi1, ubi1, lbi1, ubi1, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XLZL, lbi0, ubi0, lbn0, hbn0, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XLZU, lbi0, ubi0, lbn0, hbn0, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XUZL, lbi1, ubi1, lbn0, hbn0, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + XUZU, lbi1, ubi1, lbn0, hbn0, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + YLZL, lbn0, hbn0, lbi0, ubi0, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + YLZU, lbn0, hbn0, lbi0, ubi0, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + YUZL, lbn0, hbn0, lbi1, ubi1, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 6 + YUZU, lbn0, hbn0, lbi1, ubi1, lbi1, ubi1, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + XL, lbe0, ube0, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + YL, lbn1, hbn1, lbe0, ube0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + ZL, lbn1, hbn1, lbn1, hbn1, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XLYL, lbe0, ube0, lbe0, ube0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XLYU, lbe0, ube0, lbe1, ube1, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XUYL, lbe1, ube1, lbe0, ube0, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XUYU, lbe1, ube1, lbe1, ube1, lbn0, hbn0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XLZL, lbe0, ube0, lbn0, hbn0, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XLZU, lbe0, ube0, lbn0, hbn0, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XUZL, lbe1, ube1, lbn0, hbn0, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + XUZU, lbe1, ube1, lbn0, hbn0, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + YLZL, lbn0, hbn0, lbe0, ube0, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + YLZU, lbn0, hbn0, lbe0, ube0, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + YUZL, lbn0, hbn0, lbe1, ube1, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 6 + YUZU, lbn0, hbn0, lbe1, ube1, lbe1, ube1, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + XU, lbe1, ube1, lbn0, hbn0, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + YU, lbn1, hbn1, lbe1, ube1, lbn0, hbn0, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd1_t + ZU, lbn1, hbn1, lbn1, hbn1, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XLYLZL, lbi0, ubi0, lbi0, ubi0, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XLYLZU, lbi0, ubi0, lbi0, ubi0, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XLYUZL, lbi0, ubi0, lbi1, ubi1, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XLYUZU, lbi0, ubi0, lbi1, ubi1, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XUYLZL, lbi1, ubi1, lbi0, ubi0, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XUYLZU, lbi1, ubi1, lbi0, ubi0, lbi1, ubi1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XUYUZL, lbi1, ubi1, lbi1, ubi1, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd_t + 18 + XUYUZU, lbi1, ubi1, lbi1, ubi1, lbi1, ubi1, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd2_t + XL, lbi0, ubi0, lbn1, hbn1, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd2_t + YL, lbn0, hbn0, lbi0, ubi0, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd2_t + ZL, lbn0, hbn0, lbn0, hbn1, lbi0, ubi0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XLYLZL, lbe0, ube0, lbe0, ube0, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XLYLZU, lbe0, ube0, lbe0, ube0, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XLYUZL, lbe0, ube0, lbe1, ube1, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XLYUZU, lbe0, ube0, lbe1, ube1, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XUYLZL, lbe1, ube1, lbe0, ube0, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XUYLZU, lbe1, ube1, lbe0, ube0, lbe1, ube1, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XUYUZL, lbe1, ube1, lbe1, ube1, lbe0, ube0, MPI_moment_t);
+		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XUYUZU, lbe1, ube1, lbe1, ube1, lbe1, ube1, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd2_t + XU, lbi1, ubi1, lbn1, hbn1, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd2_t + YU, lbn0, hbn0, lbi1, ubi1, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_send_bnd2_t + ZU, lbn0, hbn0, lbn0, hbn0, lbi1, ubi1, MPI_moment_t);
 
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd2_t + XL, lbe0, ube0, lbn1, hbn1, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd2_t + YL, lbn0, hbn0, lbe0, ube0, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd2_t + ZL, lbn0, hbn0, lbn0, hbn0, lbe0, ube0, MPI_moment_t);
-
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd2_t + XU, lbe1, ube1, lbn1, hbn1, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd2_t + YU, lbn0, hbn0, lbe1, ube1, lbn1, hbn1, MPI_moment_t);
-		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd2_t + ZU, lbn0, hbn0, lbn0, hbn0, lbe1, ube1, MPI_moment_t);
 
 		const int ds = INX / 2;
 		int ci, xlb, xub, ylb, yub, zlb, zub;
@@ -1054,6 +971,58 @@ void HydroFMMGrid::MPI_datatypes_init() {
 				}
 			}
 		}
+		face_id[XL] = 0;
+		face_id[XU] = 1;
+		face_id[YL] = 2;
+		face_id[YU] = 3;
+		face_id[ZL] = 4;
+		face_id[ZU] = 5;
+		face_id[XLYL + 6] = 6;
+		face_id[XLYU + 6] = 7;
+		face_id[XLZL + 6] = 8;
+		face_id[XLZU + 6] = 9;
+		face_id[XUYL + 6] = 10;
+		face_id[XUYU + 6] = 11;
+		face_id[XUZL + 6] = 12;
+		face_id[XUZU + 6] = 13;
+		face_id[YLZL + 6] = 14;
+		face_id[YLZU + 6] = 15;
+		face_id[YUZL + 6] = 16;
+		face_id[YUZU + 6] = 17;
+		face_id[XLYLZL + 18] = 18;
+		face_id[XLYLZU + 18] = 19;
+		face_id[XLYUZL + 18] = 20;
+		face_id[XLYUZU + 18] = 21;
+		face_id[XUYLZL + 18] = 22;
+		face_id[XUYLZU + 18] = 23;
+		face_id[XUYUZL + 18] = 24;
+		face_id[XUYUZU + 18] = 25;
+		face_opp_id[XU] = 0;
+		face_opp_id[XL] = 1;
+		face_opp_id[YU] = 2;
+		face_opp_id[YL] = 3;
+		face_opp_id[ZU] = 4;
+		face_opp_id[ZL] = 5;
+		face_opp_id[XUYU + 6] = 6;
+		face_opp_id[XUYL + 6] = 7;
+		face_opp_id[XUZU + 6] = 8;
+		face_opp_id[XUZL + 6] = 9;
+		face_opp_id[XLYU + 6] = 10;
+		face_opp_id[XLYL + 6] = 11;
+		face_opp_id[XLZU + 6] = 12;
+		face_opp_id[XLZL + 6] = 13;
+		face_opp_id[YUZU + 6] = 14;
+		face_opp_id[YUZL + 6] = 15;
+		face_opp_id[YLZU + 6] = 16;
+		face_opp_id[YLZL + 6] = 17;
+		face_opp_id[XUYUZU + 18] = 18;
+		face_opp_id[XUYUZL + 18] = 19;
+		face_opp_id[XUYLZU + 18] = 20;
+		face_opp_id[XUYLZL + 18] = 21;
+		face_opp_id[XLYUZU + 18] = 22;
+		face_opp_id[XLYUZL + 18] = 23;
+		face_opp_id[XLYLZU + 18] = 24;
+		face_opp_id[XLYLZL + 18] = 25;
 		initialized = true;
 	}
 }

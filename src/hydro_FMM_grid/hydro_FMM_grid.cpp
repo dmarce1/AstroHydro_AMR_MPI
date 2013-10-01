@@ -23,6 +23,8 @@ MPI_Datatype HydroFMMGrid::MPI_comm_child1_t[8];
 MPI_Datatype HydroFMMGrid::MPI_comm_child2_t[8];
 MPI_Datatype HydroFMMGrid::MPI_moment_t;
 MPI_Datatype HydroFMMGrid::MPI_taylor_t;
+Real HydroFMMGrid::d0_array[INX][INX][INX];
+Real HydroFMMGrid::d1_array[2 * INX + 1][2 * INX + 1][2 * INX + 1][3];
 
 int face_id[26];
 int face_opp_id[26];
@@ -292,6 +294,7 @@ void HydroFMMGrid::compute_interactions(int) {
 	Taylor *l;
 	int xlb, xub, ylb, yub, zlb, zub;
 	static const Real delta[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+	const Real dxinv = 1.0 / get_dx();
 	for (int k0 = FBW; k0 < FNX - FBW; k0++) {
 		for (int j0 = FBW; j0 < FNX - FBW; j0++) {
 			for (int i0 = FBW; i0 < FNX - FBW; i0++) {
@@ -321,48 +324,41 @@ void HydroFMMGrid::compute_interactions(int) {
 								interaction_pair = !((abs(i0 - i) <= FORDER) && (abs(j - j0) <= FORDER) && (abs(k - k0) <= FORDER));
 							}
 							if (interaction_pair) {
-								const _3Vec Y = n1->X - n2->X;
-								const Real r2inv = 1.0 / Y.dot(Y);
-								const Real d0 = -sqrt(r2inv);
-								const Real d1 = -d0 * r2inv;
-								const Real d2 = -3.0 * d1 * r2inv;
-								const Real d3 = -5.0 * d2 * r2inv;
-								(*l)() += n2->M() * d0;
-								for (int a = 0; a < 3; a++) {
-									(*l)(a) += n2->M() * d1 * Y[a];
-								}
 								if (!n1->is_leaf || !n2->is_leaf) {
+									const _3Vec Y = n1->X - n2->X;
+									const Real r2inv = 1.0 / Y.dot(Y);
+									const Real d0 = -sqrt(r2inv);
+									const Real d1 = -d0 * r2inv;
+									const Real d2 = -3.0 * d1 * r2inv;
+									const Real d3 = -5.0 * d2 * r2inv;
+									(*l)() += n2->M() * d0;
 									for (int a = 0; a < 3; a++) {
 										(*l)() += n2->M2(a, a) * d1 * 0.5;
+										(*l)(a) += n2->M() * d1 * Y[a];
 										for (int b = 0; b < 3; b++) {
 											(*l)() += n2->M2(a, b) * d2 * 0.5 * Y[a] * Y[b];
-										}
-									}
-									for (int a = 0; a < 3; a++) {
-										for (int b = 0; b < 3; b++) {
-											(*l)(a) += n2->M2(b, b) * d2 * 0.5 * Y[a];
-											(*l)(a) += n2->M2(a, b) * d2 * 1.0 * Y[b];
+											(*l)(a) += d2 * (n2->M2(b, b) * 0.5 * Y[a] + n2->M2(a, b) * Y[b]);
 											for (int c = 0; c < 3; c++) {
 												(*l)(a) += n2->M2(b, c) * d3 * 0.5 * Y[a] * Y[b] * Y[c];
 											}
 										}
-									}
-									for (int a = 0; a < 3; a++) {
 										for (int b = a; b < 3; b++) {
-											(*l)(a, b) += n2->M() * delta[a][b] * d1;
-											(*l)(a, b) += n2->M() * Y[a] * Y[b] * d2;
-										}
-									}
-									for (int a = 0; a < 3; a++) {
-										for (int b = a; b < 3; b++) {
+											(*l)(a, b) += n2->M() * (delta[a][b] * d1 + Y[a] * Y[b] * d2);
 											for (int c = b; c < 3; c++) {
-												(*l)(a, b, c) += n2->M() * d2 * delta[a][b] * Y[c];
-												(*l)(a, b, c) += n2->M() * d2 * delta[b][c] * Y[a];
-												(*l)(a, b, c) += n2->M() * d2 * delta[a][c] * Y[b];
-												(*l)(a, b, c) += n2->M() * d3 * Y[a] * Y[b] * Y[c];
+												(*l)(a, b, c) += n2->M() * (d2 * (delta[a][b] * Y[c] + delta[b][c] * Y[a] + delta[a][c] * Y[b]) + d3 * Y[a] * Y[b] * Y[c]);
 											}
 										}
 									}
+								} else {
+									Real tmp = n2->M() * dxinv;
+									(*l)() += d0_array[abs(k - k0)][abs(j - j0)][abs(i - i0)] * tmp;
+									tmp *= dxinv;
+									const int k1 = k - k0 + INX;
+									const int j1 = j - j0 + INX;
+									const int i1 = i - i0 + INX;
+									(*l)(0) += d1_array[k1][j1][i1][0] * tmp;
+									(*l)(1) += d1_array[k1][j1][i1][1] * tmp;
+									(*l)(2) += d1_array[k1][j1][i1][2] * tmp;
 								}
 							}
 						}
@@ -405,7 +401,6 @@ void HydroFMMGrid::expansion_recv_wait(int) {
 				for (int j0 = FBW; j0 < FNX - FBW; j0 += 2) {
 					for (int i0 = FBW; i0 < FNX - FBW; i0 += 2) {
 						pL = taylor_buffer[cnt];
-						//		printf( "%e\n", pL());
 						cnt++;
 						Z = 0.0;
 						mtmp = 0.0;
@@ -434,30 +429,18 @@ void HydroFMMGrid::expansion_recv_wait(int) {
 										cL() += pL(a) * Y[a];
 										for (int b = 0; b < 3; b++) {
 											cL() += pL(a, b) * Y[a] * Y[b] * 0.5;
-											for (int c = 0; c < 3; c++) {
-												cL() += pL(a, b, c) * Y[a] * Y[b] * Y[c] * (1.0 / 6.0);
-											}
-										}
-									}
-									for (int a = 0; a < 3; a++) {
-										cL(a) += pL(a);
-										for (int b = 0; b < 3; b++) {
+											cL(a) += pL(a);
 											cL(a) += pL(a, b) * Y[b];
 											for (int c = 0; c < 3; c++) {
+												cL() += pL(a, b, c) * Y[a] * Y[b] * Y[c] * (1.0 / 6.0);
 												cL(a) += pL(a, b, c) * Y[b] * Y[c] * 0.5;
 											}
 										}
-									}
-									for (int a = 0; a < 3; a++) {
 										for (int b = a; b < 3; b++) {
 											cL(a, b) += pL(a, b);
 											for (int c = 0; c < 3; c++) {
 												cL(a, b) += pL(a, b, c) * Y[c];
 											}
-										}
-									}
-									for (int a = 0; a < 3; a++) {
-										for (int b = a; b < 3; b++) {
 											for (int c = b; c < 3; c++) {
 												cL(a, b, c) += pL(a, b, c);
 											}
@@ -853,6 +836,22 @@ void HydroFMMGrid::pot_to_hydro_grid() {
 void HydroFMMGrid::MPI_datatypes_init() {
 	static bool initialized = false;
 	if (!initialized) {
+		for (int k = 0; k < INX; k++) {
+			for (int j = 0; j < INX; j++) {
+				for (int i = 0; i < INX; i++) {
+					d0_array[k][j][i] = -1.0 / sqrt(i * i + j * j + k * k);
+				}
+			}
+		}
+		for (int k = -INX; k < INX; k++) {
+			for (int j = -INX; j < INX; j++) {
+				for (int i = -INX; i < INX; i++) {
+					d1_array[k + INX][j + INX][i + INX][0] = -i / pow(i * i + j * j + k * k, 1.5);
+					d1_array[k + INX][j + INX][i + INX][1] = -j / pow(i * i + j * j + k * k, 1.5);
+					d1_array[k + INX][j + INX][i + INX][2] = -k / pow(i * i + j * j + k * k, 1.5);
+				}
+			}
+		}
 		const int lbi0 = FBW;
 		const int ubi0 = 2 * FBW - 1;
 		const int lbi1 = FNX - 2 * FBW;
@@ -950,8 +949,6 @@ void HydroFMMGrid::MPI_datatypes_init() {
 		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XUYLZU, lbe1, ube1, lbe0, ube0, lbe1, ube1, MPI_moment_t);
 		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XUYUZL, lbe1, ube1, lbe1, ube1, lbe0, ube0, MPI_moment_t);
 		Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_recv_bnd_t + 18 + XUYUZU, lbe1, ube1, lbe1, ube1, lbe1, ube1, MPI_moment_t);
-
-
 
 		const int ds = INX / 2;
 		int ci, xlb, xub, ylb, yub, zlb, zub;

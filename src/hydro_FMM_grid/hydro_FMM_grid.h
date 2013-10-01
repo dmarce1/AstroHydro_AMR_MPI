@@ -8,7 +8,6 @@
 #ifndef HYDRO_FMM_GRID_H_
 #define HYDRO_FMM_GRID_H_
 
-
 #include "../defs.h"
 
 #ifdef USE_FMM
@@ -17,7 +16,6 @@
 
 #include "moment.h"
 #include "taylor.h"
-
 
 #define FORDER 2
 #define FNX (INX+2*FBW)
@@ -28,9 +26,11 @@
 
 class HydroFMMGrid: public HydroGrid {
 private:
+	static Real d0_array[INX][INX][INX];
+	static Real d1_array[2 * INX + 1][2 * INX + 1][2 * INX + 1][3];
 	HydroFMMGrid* neighbors[26];
 	typedef void (HydroFMMGrid::*ifunc_t)(int);
-	static ifunc_t cs[FSTAGE+1];
+	static ifunc_t cs[FSTAGE + 1];
 	static MPI_Datatype MPI_send_bnd_t[26];
 	static MPI_Datatype MPI_recv_bnd_t[26];
 	static MPI_Datatype MPI_comm_child1_t[8];
@@ -44,12 +44,12 @@ private:
 	Array3d<Taylor, FNX, FNX, FNX> L;
 	Array3d<Real, FNX, FNX, FNX> phi;
 	Array3d<_3Vec, FNX, FNX, FNX> g;
-	Vector<Real,3> mom_sum;
+	Vector<Real, 3> mom_sum;
 	bool is_leaf(int i, int j, int k) const;
 
 public:
 	static void momentum_sum();
-	static Vector<Real,4> com_sum();
+	static Vector<Real, 4> com_sum();
 	Real gx(int i, int j, int k) const;
 	Real gy(int i, int j, int k) const;
 	Real gz(int i, int j, int k) const;

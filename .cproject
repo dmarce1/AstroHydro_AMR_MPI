@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="intel.linux.x86_64.exe.rel.416340396_11.1.0">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="intel.linux.x86_64.exe.rel.416340396_11.1.0" moduleId="org.eclipse.cdt.core.settings" name="Release">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.ICCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="intel.linux.x86_64.exe.rel.416340396_11.1.0" name="Release" parent="intel.linux.x86_64.exe.rel_11.1.0">
+					<folderInfo id="intel.linux.x86_64.exe.rel.416340396._11.1.0" name="/" resourcePath="">
+						<toolChain id="intel.toolchain.linux.x86_64.exe.rel.1779698088_11.1.0" name="Intel Toolchain for Executable on Intel(R) 64" superClass="intel.toolchain.linux.x86_64.exe.rel_11.1.0">
+							<targetPlatform archList="x86_64" binaryParser="org.eclipse.cdt.core.ELF" id="intel.platform.linux.x86_64.exe.rel_11.1.0.85753045" name="Platform.Executable.Release" osList="linux" superClass="intel.platform.linux.x86_64.exe.rel_11.1.0"/>
+							<builder buildPath="${workspace_loc:/AstroHydro_AMR_MPI/Release_11.1.0}" id="intel.builder.linux.x86_64.exe.rel.1580276433_11.1.0" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Intel Builder" superClass="intel.builder.linux.x86_64.exe.rel_11.1.0"/>
+							<tool command="mpic++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548_11.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.rel_11.1.0">
+								<option id="intel.compilestep.preprocessor.includedirectories.1752069745" name="Additional Include Directories (-I)" superClass="intel.compilestep.preprocessor.includedirectories" valueType="includePath">
+									<listOptionValue builtIn="false" value="/home/dmarce1/include"/>
+								</option>
+								<option id="intel.compilestep.preprocessor.defsym.2092334741" name="Preprocessor Definitions (-D)" superClass="intel.compilestep.preprocessor.defsym" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="NDEBUG"/>
+								</option>
+								<option id="intel.compilestep.coptions.567593646" name="Additional Options" superClass="intel.compilestep.coptions" value="-ipo -xHOST -O3" valueType="string"/>
+								<inputType id="intel.cpp.compilestep.input.127043470" superClass="intel.cpp.compilestep.input"/>
+							</tool>
+							<tool command="mpicc" id="intel.c.compilestep.linux.x86_64.exe.rel.1410068414_11.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.rel_11.1.0">
+								<inputType id="intel.c.compilestep.input.821066972" superClass="intel.c.compilestep.input"/>
+							</tool>
+							<tool id="intel.c.linkstep.linux.x86_64.exe.rel.299900819_11.1.0" name="Intel Intel(R) 64 C Linker" superClass="intel.c.linkstep.linux.x86_64.exe.rel_11.1.0">
+								<option id="intel.linkstep.libname.1499692648" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
+									<listOptionValue builtIn="false" value="bfd"/>
+									<listOptionValue builtIn="false" value="silo"/>
+									<listOptionValue builtIn="false" value="ifcore"/>
+									<listOptionValue builtIn="false" value="iso7"/>
+								</option>
+								<option id="intel.linkstep.libpath.1795915855" name="Search Directory for Libraries (-L)" superClass="intel.linkstep.libpath" valueType="stringList">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/iso7_src}&quot;"/>
+									<listOptionValue builtIn="false" value="/home/dmarce1/lib"/>
+								</option>
+							</tool>
+							<tool command="mpic++" id="intel.cpp.linkstep.linux.x86_64.exe.rel.1566567523_11.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.rel_11.1.0">
+								<option id="intel.linkstep.libname.812047217" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
+									<listOptionValue builtIn="false" value="bfd"/>
+									<listOptionValue builtIn="false" value="silo"/>
+									<listOptionValue builtIn="false" value="ifcore"/>
+									<listOptionValue builtIn="false" value="iso7"/>
+								</option>
+								<option id="intel.linkstep.libpath.1023137905" name="Search Directory for Libraries (-L)" superClass="intel.linkstep.libpath" valueType="stringList">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/iso7_src}&quot;"/>
+									<listOptionValue builtIn="false" value="/home/dmarce1/lib"/>
+								</option>
+								<inputType id="intel.linkstep.input.803248780" superClass="intel.linkstep.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry excluding="iso7_src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+		<cconfiguration id="intel.linux.x86_64.exe.dbg.1427174046_11.1.0">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="intel.linux.x86_64.exe.dbg.1427174046_11.1.0" moduleId="org.eclipse.cdt.core.settings" name="Debug">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.ICCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="intel.linux.x86_64.exe.dbg.1427174046_11.1.0" name="Debug" parent="intel.linux.x86_64.exe.dbg_11.1.0">
+					<folderInfo id="intel.linux.x86_64.exe.dbg.1427174046._11.1.0" name="/" resourcePath="">
+						<toolChain id="intel.toolchain.linux.x86_64.exe.dbg.456658413_11.1.0" name="Intel Toolchain for Executable on Intel(R) 64" superClass="intel.toolchain.linux.x86_64.exe.dbg_11.1.0">
+							<targetPlatform archList="x86_64" binaryParser="org.eclipse.cdt.core.ELF" id="intel.platform.linux.x86_64.exe.dbg_11.1.0.1792307641" name="Platform.Executable.Debug" osList="linux" superClass="intel.platform.linux.x86_64.exe.dbg_11.1.0"/>
+							<builder buildPath="${workspace_loc:/AstroHydro_AMR_MPI/Debug_11.1.0}" id="intel.builder.linux.x86_64.exe.dbg.255064071_11.1.0" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Intel Builder" superClass="intel.builder.linux.x86_64.exe.dbg_11.1.0"/>
+							<tool command="mpic++" id="intel.cpp.compilestep.linux.x86_64.exe.dbg.1756184793_11.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.dbg_11.1.0">
+								<option id="intel.compilestep.preprocessor.includedirectories.372947083" name="Additional Include Directories (-I)" superClass="intel.compilestep.preprocessor.includedirectories" valueType="includePath">
+									<listOptionValue builtIn="false" value="/home/dmarce1/include"/>
+								</option>
+								<inputType id="intel.cpp.compilestep.input.1271835865" superClass="intel.cpp.compilestep.input"/>
+							</tool>
+							<tool command="mpicc" id="intel.c.compilestep.linux.x86_64.exe.dbg.1393112378_11.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.dbg_11.1.0">
+								<inputType id="intel.c.compilestep.input.1757686125" superClass="intel.c.compilestep.input"/>
+							</tool>
+							<tool id="intel.c.linkstep.linux.x86_64.exe.dbg.1786024394_11.1.0" name="Intel Intel(R) 64 C Linker" superClass="intel.c.linkstep.linux.x86_64.exe.dbg_11.1.0">
+								<option id="intel.linkstep.libname.1885426694" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
+									<listOptionValue builtIn="false" value="bfd"/>
+									<listOptionValue builtIn="false" value="silo"/>
+									<listOptionValue builtIn="false" value="ifcore"/>
+									<listOptionValue builtIn="false" value="iso7"/>
+								</option>
+								<option id="intel.linkstep.libpath.827503723" name="Search Directory for Libraries (-L)" superClass="intel.linkstep.libpath" valueType="stringList">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/iso7_src}&quot;"/>
+									<listOptionValue builtIn="false" value="/home/dmarce1/lib"/>
+								</option>
+							</tool>
+							<tool command="mpic++" id="intel.cpp.linkstep.linux.x86_64.exe.dbg.88786019_11.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.dbg_11.1.0">
+								<option id="intel.linkstep.libname.957309016" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
+									<listOptionValue builtIn="false" value="bfd"/>
+									<listOptionValue builtIn="false" value="gfortran"/>
+									<listOptionValue builtIn="false" value="silo"/>
+									<listOptionValue builtIn="false" value="ifcore"/>
+									<listOptionValue builtIn="false" value="iso7"/>
+								</option>
+								<option id="intel.linkstep.libpath.353068598" name="Search Directory for Libraries (-L)" superClass="intel.linkstep.libpath" valueType="stringList">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/iso7_src}&quot;"/>
+									<listOptionValue builtIn="false" value="/home/dmarce1/lib"/>
+								</option>
+								<inputType id="intel.linkstep.input.192993604" superClass="intel.linkstep.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry excluding="iso7_src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="AstroHydro_AMR_MPI.intel.linux.executable.2.505008451" name="Executable" projectType="intel.linux.executable.2"/>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+	</storageModule>
+	<storageModule moduleId="refreshScope"/>
+</cproject>

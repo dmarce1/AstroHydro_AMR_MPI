@@ -1,10 +1,13 @@
 #include "binary_star.h"
+#include "../hydro_FMM_grid/hydro_FMM_grid.h"
 
 #ifdef HYDRO_GRAV_GRID
 #ifdef BINARY_STAR
 
 #define CHECKPT_FREQ 256
 
+//static Real MA = 1.04;
+//static Real MD = 0.20;
 static Real MA = 1.04;
 static Real MD = 0.20;
 Real BinaryStar::refine_floor = 1.0e-4;
@@ -112,33 +115,6 @@ void BinaryStar::find_rho_max(Real* rho1, Real* rho2) {
 	MPI_Allreduce(&tmp, rho1, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD );
 	tmp = *rho2;
 	MPI_Allreduce(&tmp, rho2, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD );
-}
-
-void BinaryStar::find_phi_min(Real* phi1, Real* phi2) {
-	BinaryStar *g;
-	Real tmp;
-	*phi1 = 1.0e+100;
-	*phi2 = 1.0e+100;
-	for (int l = 0; l < get_local_node_cnt(); l++) {
-		g = dynamic_cast<BinaryStar*>(get_local_node(l));
-		for (int k = BW; k < GNX - BW; k++) {
-			for (int j = BW; j < GNX - BW; j++) {
-				for (int i = BW; i < GNX - BW; i++) {
-					if (!g->zone_is_refined(i, j, k)) {
-						if ((*g)(i, j, k).frac(0) > (*g)(i, j, k).frac(1)) {
-							*phi1 = min(*phi1, g->get_phi(i + BW - 1, j + BW - 1, k - BW - 1));
-						} else {
-							*phi2 = min(*phi2, g->get_phi(i + BW - 1, j + BW - 1, k - BW - 1));
-						}
-					}
-				}
-			}
-		}
-	}
-	tmp = *phi1;
-	MPI_Allreduce(&tmp, phi1, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD );
-	tmp = *phi2;
-	MPI_Allreduce(&tmp, phi2, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD );
 }
 
 #ifdef ZTWD
@@ -377,13 +353,21 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	int scf_iter;
 	for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
 		if (scf_iter % 10 == 0) {
-			get_root()->output("S", scf_iter, GNX, BW);
+			get_root()->output("S", 2 * scf_iter, GNX, BW);
+			if (check_for_refine())
+			  next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
+				get_root()->output("S", 2 * scf_iter + 1, GNX, BW);
 		}
 		////	if (scf_iter == 100) {
 //			set_max_level_allowed(maxlev);
 //		}
 		//	set_poisson_tolerance(1.0e-10);
+#ifdef USE_FMM
+		FMM_solve();
+		max_dt_driver();
+#else
 		solve_poisson();
+#endif
 		find_phimins(&phi_min_a, &xa, &phi_min_d, &xd);
 		find_mass(0, &m_a, &com_a);
 		find_mass(1, &m_d, &com_d);
@@ -447,7 +431,6 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
 					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
-		check_for_refine();
 		if (fabs(log(Ka / Kd)) < 1.0e-4 && scf_iter >= 101) {
 			break;
 		}
@@ -580,7 +563,11 @@ void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {
 	for (int i = 0; i < count; i++) {
 		dynamic_cast<MultiGrid*>(OctNode::get_local_node(i))->phi_calc_amr_bounds();
 	}
+#ifdef USE_FMM
+	FMM_solve();
+#else
 	solve_poisson();
+#endif
 }
 
 void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
@@ -593,9 +580,9 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 //	system(fname);
 //	free(fname);
 	char dummy;
-  if (MPI_rank() != 0) {
-          MPI_Recv(&dummy, 1, MPI_BYTE,  MPI_rank() - 1,0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-  }
+	if (MPI_rank() != 0) {
+		MPI_Recv(&dummy, 1, MPI_BYTE, MPI_rank() - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+	}
 	asprintf(&fname, "checkpoint.%s.%i.bin", idname, MPI_rank());
 	fp = fopen(fname, "wb");
 	free(fname);
@@ -610,9 +597,9 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 	fwrite(&i2, sizeof(int), 1, fp);
 	get_root()->write_checkpoint(fp);
 	fclose(fp);
-  if (MPI_rank() < MPI_size() -1) {
-          MPI_Send(&dummy, 1, MPI_BYTE, MPI_rank() + 1, 0,MPI_COMM_WORLD );
-  }
+	if (MPI_rank() < MPI_size() - 1) {
+		MPI_Send(&dummy, 1, MPI_BYTE, MPI_rank() + 1, 0, MPI_COMM_WORLD );
+	}
 }
 
 void BinaryStar::run(int argc, char* argv[]) {
@@ -622,7 +609,9 @@ void BinaryStar::run(int argc, char* argv[]) {
 		scf_run(argc, argv);
 		return;
 	}
+#ifndef USE_FMM
 	set_poisson_tolerance(1.0e-8);
+#endif
 	shadow_off();
 
 	Real dt;
@@ -642,11 +631,15 @@ void BinaryStar::run(int argc, char* argv[]) {
 
 	PhysicalConstants::set_cgs();
 
+#ifndef USE_FMM
 	set_poisson_tolerance(1.0e-10);
+#endif
 	if (MPI_rank() == 0) {
 		printf("Beginning evolution with period = %e, omega = %e\n", 2.0 * M_PI / State::get_omega(), State::get_omega());
 	}
+#ifndef USE_FMM
 	hydro_time = poisson_boundary_time = poisson_interior_time = 0.0;
+#endif
 	State sum;
 	if (get_time() == 0.0) {
 		get_root()->output("X", 0.0, GNX, BW);
@@ -717,18 +710,18 @@ void BinaryStar::run(int argc, char* argv[]) {
 			printf("\n");
 		}
 	} while (!last_step);
-	if (MPI_rank() == 0) {
-		char* str;
-		if (asprintf(&str, "time.%i.txt", get_max_level_allowed()) == 0) {
-			printf("Unable to create filename\n");
-		} else {
-			FILE* fp = fopen(str, "at");
-			fprintf(fp, "%i %e %e %e %e\n", MPI_size(), hydro_time + poisson_boundary_time + poisson_interior_time, hydro_time, poisson_boundary_time,
-					poisson_interior_time);
-			fclose(fp);
-			free(str);
-		}
-	}
+	/*if (MPI_rank() == 0) {
+	 char* str;
+	 if (asprintf(&str, "time.%i.txt", get_max_level_allowed()) == 0) {
+	 printf("Unable to create filename\n");
+	 } else {
+	 FILE* fp = fopen(str, "at");
+	 fprintf(fp, "%i %e %e %e %e\n", MPI_size(), hydro_time + poisson_boundary_time + poisson_interior_time, hydro_time, poisson_boundary_time,
+	 poisson_interior_time);
+	 fclose(fp);
+	 free(str);
+	 }
+	 }*/
 }
 
 void BinaryStar::integrate_conserved_variables(Vector<Real, STATE_NF>* sum_ptr) {
@@ -955,7 +948,11 @@ void BinaryStar::next_omega(Real Kd) {
 	int i, j, k;
 	Real frot, ftot, x, hp, hm, phip, phim, tmp;
 	Real n = 1.5, d, dp, dm;
+#ifdef USE_FMM
+	const int o = 0;
+#else
 	const int o = BW - 1;
+#endif
 	frot = ftot = 0.0;
 	for (int l = 0; l < get_local_node_cnt(); l++) {
 		g = dynamic_cast<BinaryStar*>(get_local_node(l));

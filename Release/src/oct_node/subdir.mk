@@ -29,7 +29,7 @@ CPP_DEPS += \
 src/oct_node/%.o: ../src/oct_node/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Compiler '
-	mpic++ -I/home/dmarce1/include -DNDEBUG -ipo -xHOST -O3 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
+	mpic++ -O3 -opt-prefetch=3 -ipo -inline-level=2 -I/home/dmarce1/include -DNDEBUG -fp-model fast=2 -xHost -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

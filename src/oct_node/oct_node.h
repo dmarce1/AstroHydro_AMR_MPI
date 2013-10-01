@@ -70,14 +70,14 @@ protected:
 	virtual void create_child(const ChildIndex&);
 	int get_level() const;
 	bool is_real_bound(OctFace f) const;
-	bool get_refine_flag(const ChildIndex&) const;
-	void set_refine_flag(const ChildIndex&, bool);
 	int last_proc() const;
 	ChildIndex my_child_index() const;
 	int next_proc() const;
 	virtual void write(FILE* fp) const = 0;
 	virtual void read(FILE* fp) = 0;
 public:
+	bool get_refine_flag(const ChildIndex&) const;
+	void set_refine_flag(const ChildIndex&, bool);
 	static void initialize_grids();
 	static OctNode* get_local_node(int i);
 	static int get_local_node_cnt();

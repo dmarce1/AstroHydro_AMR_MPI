@@ -429,9 +429,9 @@ void HydroFMMGrid::expansion_recv_wait(int) {
 									cL() += pL();
 									for (int a = 0; a < 3; a++) {
 										cL() += pL(a) * Y[a];
+										cL(a) += pL(a);
 										for (int b = 0; b < 3; b++) {
 											cL() += pL(a, b) * Y[a] * Y[b] * 0.5;
-											cL(a) += pL(a);
 											cL(a) += pL(a, b) * Y[b];
 											for (int c = 0; c < 3; c++) {
 												cL() += pL(a, b, c) * Y[a] * Y[b] * Y[c] * (1.0 / 6.0);

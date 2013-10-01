@@ -20,7 +20,7 @@ CPP_DEPS += \
 src/hydro_grav_grid/%.o: ../src/hydro_grav_grid/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Compiler '
-	mpicc -DNDEBUG -fp-model fast=2 -O3 -xHOST -ipo -no-prec-div -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
+	mpic++ -I/home/dmarce1/include -DNDEBUG -ipo -xHOST -O3 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lifcore -lsilo -liso7 -lbfd
+LIBS := -lbfd -lsilo -lifcore -liso7
 

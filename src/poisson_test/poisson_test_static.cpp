@@ -8,6 +8,7 @@ void PoissonTest::run(int argc, char* argv[]) {
 	iters = 0;
 	Real boundary_time, solve_time, start_time;
 	get_root()->find_local_nodes();
+	HydroFMMGrid::solve_on = false;
 	for (int iters = 0; iters <= OctNode::get_max_level_allowed(); iters++) {
 		OctNode::initialize_grids();
 		check_for_refine();
@@ -17,6 +18,7 @@ void PoissonTest::run(int argc, char* argv[]) {
 	}
 	OctNode::initialize_grids();
 
+	HydroFMMGrid::solve_on = true;
 	start_time = MPI_Wtime();
 #ifdef USE_FMM
 	PoissonTest::mass0 = dynamic_cast<HydroFMMGrid*>(get_root())->com_sum()[3];

@@ -48,6 +48,7 @@ private:
 	bool is_leaf(int i, int j, int k) const;
 
 public:
+	static bool solve_on;
 	static void momentum_sum();
 	static Vector<Real, 4> com_sum();
 	Real gx(int i, int j, int k) const;

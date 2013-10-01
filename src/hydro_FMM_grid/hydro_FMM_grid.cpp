@@ -25,11 +25,13 @@ MPI_Datatype HydroFMMGrid::MPI_moment_t;
 MPI_Datatype HydroFMMGrid::MPI_taylor_t;
 Real HydroFMMGrid::d0_array[INX][INX][INX];
 Real HydroFMMGrid::d1_array[2 * INX + 1][2 * INX + 1][2 * INX + 1][3];
+bool HydroFMMGrid::solve_on = true;
 
 int face_id[26];
 int face_opp_id[26];
 
 void HydroFMMGrid::FMM_solve() {
+	printf("!\n");
 	MPI_datatypes_init();
 	HydroFMMGrid** list = new HydroFMMGrid*[get_local_node_cnt()];
 	for (int i = 0; i < get_local_node_cnt(); i++) {
@@ -570,7 +572,9 @@ bool HydroFMMGrid::check_for_refine() {
 		pot_to_hydro_grid();
 		HydroGrid::redistribute_grids();
 		int count = OctNode::get_local_node_cnt();
-		FMM_solve();
+		if (solve_on) {
+			FMM_solve();
+		}
 	}
 	from_conserved_energy();
 	return rc;
@@ -839,16 +843,20 @@ void HydroFMMGrid::MPI_datatypes_init() {
 		for (int k = 0; k < INX; k++) {
 			for (int j = 0; j < INX; j++) {
 				for (int i = 0; i < INX; i++) {
-					d0_array[k][j][i] = -1.0 / sqrt(i * i + j * j + k * k);
+					if (!(i == 0 && j == 0 && k == 0)) {
+						d0_array[k][j][i] = -1.0 / sqrt(i * i + j * j + k * k);
+					}
 				}
 			}
 		}
 		for (int k = -INX; k < INX; k++) {
 			for (int j = -INX; j < INX; j++) {
 				for (int i = -INX; i < INX; i++) {
-					d1_array[k + INX][j + INX][i + INX][0] = -i / pow(i * i + j * j + k * k, 1.5);
-					d1_array[k + INX][j + INX][i + INX][1] = -j / pow(i * i + j * j + k * k, 1.5);
-					d1_array[k + INX][j + INX][i + INX][2] = -k / pow(i * i + j * j + k * k, 1.5);
+					if (!(i == 0 && j == 0 && k == 0)) {
+						d1_array[k + INX][j + INX][i + INX][0] = -i / pow(i * i + j * j + k * k, 1.5);
+						d1_array[k + INX][j + INX][i + INX][1] = -j / pow(i * i + j * j + k * k, 1.5);
+						d1_array[k + INX][j + INX][i + INX][2] = -k / pow(i * i + j * j + k * k, 1.5);
+					}
 				}
 			}
 		}

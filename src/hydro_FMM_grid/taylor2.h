@@ -5,23 +5,22 @@
  *      Author: dmarce1
  */
 
-#ifndef TAYLOR_H_
-#define TAYLOR_H_
+#ifndef TAYLOR2_H_
+#define TAYLOR2_H_
 
 #include "../defs.h"
 #include "../real.h"
 
-class Taylor {
+class Taylor2 {
 private:
 	Real l0;
 	Real l1[3];
 	Real l2[6];
-	Real l3[10];
 public:
-	Taylor& operator=(const Taylor& t);
-	Taylor& operator+=(const Taylor& t);
+	Taylor2& operator=(const Taylor2& t);
+	Taylor2& operator+=(const Taylor2& t);
 	void zero();
-	Taylor();
+	Taylor2();
 	Real operator()() const;
 	Real operator()(int i) const;
 	Real operator()(int i, int j) const;
@@ -30,7 +29,7 @@ public:
 	Real& operator()(int i, int j);
 	Real operator()(int i, int j, int k) const;
 	Real& operator()(int i, int j, int k);
-	virtual ~Taylor();
+	virtual ~Taylor2();
 };
-
 #endif /* TAYLOR_H_ */
+

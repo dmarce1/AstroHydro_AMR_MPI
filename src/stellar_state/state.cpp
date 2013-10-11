@@ -8,7 +8,7 @@
 #include "state.h"
 const Real StellarState::gamma = 5.0 / 3.0;
 Real StellarState::rho_floor = 1.0e-13;
- Real StellarState::ei_floor = 1.0e-20;
+Real StellarState::ei_floor = 1.0e-20;
 const int StellarState::d_index = 0;
 const int StellarState::sx_index = 1;
 const int StellarState::sy_index = 2;
@@ -23,9 +23,9 @@ Vector<Real, STATE_NF> StellarState::x_scalar_flux_coeff(const _3Vec& X) {
 	Vector<Real, STATE_NF> c = 0.0;
 	if (cylindrical) {
 		c[sx_index] = X[0] / sqrt(X[0] * X[0] + X[1] * X[1]);
-		c[sy_index] = -X[1];
+		c[sy_index] = 0.0;
 	} else {
-		c[sx_index] = 1.0;
+		c[sx_index] = 0.0;
 	}
 	return c;
 }
@@ -34,16 +34,16 @@ Vector<Real, STATE_NF> StellarState::y_scalar_flux_coeff(const _3Vec& X) {
 	Vector<Real, STATE_NF> c = 0.0;
 	if (cylindrical) {
 		c[sx_index] = X[1] / sqrt(X[0] * X[0] + X[1] * X[1]);
-		c[sy_index] = +X[0];
+		c[sy_index] = 0.0;
 	} else {
-		c[sy_index] = 1.0;
+		c[sy_index] = 0.0;
 	}
 	return c;
 }
 
 Vector<Real, STATE_NF> StellarState::z_scalar_flux_coeff(const _3Vec& X) {
 	Vector<Real, STATE_NF> c = 0.0;
-	c[sz_index] = 1.0;
+	c[sz_index] = 0.0;
 	return c;
 }
 
@@ -55,6 +55,11 @@ Vector<Real, STATE_NF> StellarState::x_vector_flux(const _3Vec& X) const {
 	Vector<Real, STATE_NF> flux;
 	const Real v = vx(X);
 	flux = (*this) * (v - drift_vel[0]);
+	if (State::cylindrical) {
+		flux[sy_index] -= X[1] * pg(X);
+	} else {
+		flux[sx_index] += pg(X);
+	}
 	flux[et_index] += v * pg(X);
 	return flux;
 }
@@ -63,6 +68,11 @@ Vector<Real, STATE_NF> StellarState::y_vector_flux(const _3Vec& X) const {
 	Vector<Real, STATE_NF> flux;
 	const Real v = vy(X);
 	flux = (*this) * (v - drift_vel[1]);
+	if (State::cylindrical) {
+		flux[sy_index] += X[0] * pg(X);
+	} else {
+		flux[sy_index] += pg(X);
+	}
 	flux[et_index] += v * pg(X);
 	return flux;
 }
@@ -70,7 +80,11 @@ Vector<Real, STATE_NF> StellarState::y_vector_flux(const _3Vec& X) const {
 Vector<Real, STATE_NF> StellarState::z_vector_flux(const _3Vec& X) const {
 	Vector<Real, STATE_NF> flux;
 	const Real v = vz();
-	flux = (*this) * v;
+	flux = (*this) * (v - drift_vel[2]);
+	if (State::cylindrical) {
+	} else {
+		flux[sz_index] += pg(X);
+	}
 	flux[et_index] += v * pg(X);
 	return flux;
 }
@@ -99,7 +113,8 @@ Vector<Real, STATE_NF> StellarState::source(const _3Vec& X, Real t) const {
 }
 
 const char* StellarState::field_name(int i) {
-	assert(i >= 0);assert(i < STATE_NF);
+	assert(i >= 0);
+	assert(i < STATE_NF);
 	switch (i) {
 	case d_index:
 		return "d";
@@ -163,7 +178,7 @@ void StellarState::floor(const _3Vec& X) {
 		}
 	}
 	de -= conserved_energy(X);
-	(*this)[et_index] -= de;
+	(*this)[et_index] += de;
 }
 
 StellarState::StellarState() :

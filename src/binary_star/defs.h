@@ -19,7 +19,7 @@
 #define MAXINITDT           (1.0e-2)
 #define ZTWD
 #define DRIVING			    0.01
-#define DRIVING_TIME		4.0
+#define DRIVING_TIME		0.0
 //#define NGRID_LIMIT         1000
 
 #endif

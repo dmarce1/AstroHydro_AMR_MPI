@@ -58,6 +58,13 @@ void PoissonTest::run(int argc, char* argv[]) {
 		printf("%e %e %e %e %e %e %e\n", PoissonTest::x0, PoissonTest::y0, PoissonTest::z0, phi_err, x_err, y_err, z_err);
 		printf("%e %e %e \n", ferr[0], ferr[1], ferr[2]);
 	}
+	Vector<Real, 6> tmp1 = momentum_sum();
+	if (MPI_rank() == 0) {
+		FILE* fp = fopen("mom.dat", "at");
+		fprintf(fp, "%e %e %e %e %e %e %e\n", PoissonTest::x0, tmp1[0], tmp1[1], tmp1[2], tmp1[3], tmp1[4], tmp1[5]);
+		fclose(fp);
+	}
+
 }
 
 void PoissonTest::compute_error(Real* phi_err, _3Vec* fee, Real* mx_err, Real* my_err, Real* mz_err) {

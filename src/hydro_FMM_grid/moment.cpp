@@ -22,6 +22,17 @@ Real Moment::M() const {
 	return m;
 }
 
+#ifdef USE_HIGH_ORDER_POT
+Real Moment::M3(int i, int j, int k) const {
+	return m3[map3[i][j][k]];
+}
+
+Real& Moment::M3(int i, int j, int k) {
+	return m3[map3[i][j][k]];
+}
+#endif
+
+
 Real Moment::M2(int i, int j) const {
 	return m2[m2_map[i][j]];
 }
@@ -41,9 +52,15 @@ Moment& Moment::operator=(const Moment& cp) {
 	for( int i = 0; i < 6; i++) {
 		m2[i] = cp.m2[i];
 	}
+#ifdef USE_HIGH_ORDER_POT
+	for( int i = 0; i < 10; i++) {
+		m3[i] = cp.m3[i];
+	}
+#endif
 	X = cp.X;
 	return *this;
 }
+
 
 Moment::~Moment() {
 	// TODO Auto-generated destructor stub

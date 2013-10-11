@@ -25,9 +25,9 @@ HydroGrid::ifunc_t HydroGrid::es[GRID_ES_SIZE] = { &HydroGrid::flux_bnd_comm, &H
 HydroGrid::ifunc_t HydroGrid::cs[GRID_CS_SIZE] = { &HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
 		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::flux_compute, &HydroGrid::flux_cf_adjust_recv,
 		&HydroGrid::flux_cf_adjust_recv_wait, &HydroGrid::flux_cf_adjust_send, &HydroGrid::flux_cf_adjust_send_wait, &HydroGrid::sync, &HydroGrid::compute_dudt,
-		&HydroGrid::error_from_parent_recv, &HydroGrid::error_from_parent_recv_wait, &HydroGrid::error_from_parent_send,
-		&HydroGrid::error_from_parent_send_wait, &HydroGrid::compute_update, &HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait,
-		&HydroGrid::inject_from_children_send, &HydroGrid::inject_from_children_send_wait };
+		&HydroGrid::error_from_parent_recv, &HydroGrid::error_from_parent_recv_wait, &HydroGrid::error_from_parent_send, &HydroGrid::error_from_parent_send_wait,
+		&HydroGrid::compute_update, &HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait, &HydroGrid::inject_from_children_send,
+		&HydroGrid::inject_from_children_send_wait };
 
 void HydroGrid::redistribute_grids() {
 	HydroGrid** send_list;
@@ -114,9 +114,9 @@ Real HydroGrid::next_dt(bool* do_output, bool* last_step, int* ostep_cnt, Real f
 		(*ostep_cnt)++;
 		*do_output = true;
 	} else {
-	//	printf( "dt = %e\n", dt);
-	//	printf( "next_output_time = %e\n", next_output_time);
-	//	printf( "HydroGrid::get_time() = %e\n", HydroGrid::get_time());
+		//	printf( "dt = %e\n", dt);
+		//	printf( "next_output_time = %e\n", next_output_time);
+		//	printf( "HydroGrid::get_time() = %e\n", HydroGrid::get_time());
 		dt = min(dt, (next_output_time - HydroGrid::get_time()) / Real(int((next_output_time - HydroGrid::get_time()) / dt + 1.0)));
 		dt *= (1.0 + 1.0e-9);
 	}
@@ -172,8 +172,7 @@ void HydroGrid::run(int argc, char* argv[]) {
 			avg_node_cnt = (avg_node_cnt * Real(step_cnt - 1) + Real(nnodes)) / Real(step_cnt);
 			max_node_cnt = max(max_node_cnt, nnodes);
 			min_node_cnt = min(min_node_cnt, nnodes);
-			printf("step=%i t=%e dt=%e lmax=%i ngrids=%i avg ngrids=%i", step_cnt, HydroGrid::get_time(), dt, OctNode::get_max_level(), nnodes,
-					(int) avg_node_cnt);
+			printf("step=%i t=%e dt=%e lmax=%i ngrids=%i avg ngrids=%i", step_cnt, HydroGrid::get_time(), dt, OctNode::get_max_level(), nnodes, (int) avg_node_cnt);
 		}
 		if (do_output) {
 			if (MPI_rank() == 0) {
@@ -239,8 +238,15 @@ void HydroGrid::substep_driver() {
 	}
 	run_program(list, get_local_node_cnt(), cs, GRID_CS_SIZE, 3);
 	delete[] list;
-	State tmp = DFO;
-	MPI_Allreduce(&tmp, &DFO, STATE_NF, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	Real tmp[STATE_NF];
+	for (int i = 0; i < STATE_NF; i++) {
+		tmp[i] = DFO[i];
+	}
+	Real tmp2[STATE_NF];
+	MPI_Allreduce(tmp, tmp2, STATE_NF, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	for (int i = 0; i < STATE_NF; i++) {
+		DFO[i] = tmp2[i];
+	}
 	FO = (FO + DFO * _dt) * _beta + FO0 * (1.0 - _beta);
 
 }

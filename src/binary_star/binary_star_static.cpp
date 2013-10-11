@@ -12,7 +12,7 @@ static Real MA = 1.04;
 static Real MD = 0.20;
 Real BinaryStar::refine_floor = 1.0e-4;
 bool BinaryStar::scf_code = false;
-Real BinaryStar::q_ratio = 0.4;
+Real BinaryStar::q_ratio = MD / MA;
 Real BinaryStar::polyK;
 Real BinaryStar::M1 = 5.0e-6, BinaryStar::M2 = 2.5e-6;
 Real BinaryStar::Kd, BinaryStar::Ka;
@@ -338,8 +338,9 @@ void BinaryStar::next_rho(Real Ka, Real phi0a, Real xa, Real Kd, Real phi0d, Rea
 }
 
 void BinaryStar::scf_run(int argc, char* argv[]) {
-	//int maxlev = get_max_level_allowed();
-	//set_max_level_allowed(maxlev - 1);
+	int maxlev = get_max_level_allowed();
+	set_max_level_allowed(min(maxlev, 7));
+	int cur_lev = min(maxlev, 7);
 
 	shadow_off();
 	setup_grid_structure();
@@ -355,12 +356,15 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		if (scf_iter % 10 == 0) {
 			get_root()->output("S", 2 * scf_iter, GNX, BW);
 			if (check_for_refine())
-			  next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
-				get_root()->output("S", 2 * scf_iter + 1, GNX, BW);
+				next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
+			get_root()->output("S", 2 * scf_iter + 1, GNX, BW);
 		}
-		////	if (scf_iter == 100) {
-//			set_max_level_allowed(maxlev);
-//		}
+		if (scf_iter % 20 == 0 && scf_iter != 0) {
+			if (cur_lev < maxlev) {
+				cur_lev++;
+			}
+			set_max_level_allowed(cur_lev);
+		}
 		//	set_poisson_tolerance(1.0e-10);
 #ifdef USE_FMM
 		FMM_solve();
@@ -431,7 +435,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
 					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
-		if (fabs(log(Ka / Kd)) < 1.0e-4 && scf_iter >= 101) {
+		if (fabs(log(Ka / Kd)) < 1.0e-4 && scf_iter >= 10) {
 			break;
 		}
 	}
@@ -504,7 +508,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		for (int k = BW; k < GNX - BW; k++) {
 			for (int j = BW; j < GNX - BW; j++) {
 				for (int i = BW; i < GNX - BW; i++) {
-					State::rho_floor = max(State::rho_floor, 1.0e-12 * (*gg)(i, j, k).rho());
+					State::rho_floor = max(State::rho_floor, 1.0e-14 * (*gg)(i, j, k).rho());
 					refine_floor = max(refine_floor, tmp * (*gg)(i, j, k).rho());
 				}
 			}
@@ -516,7 +520,9 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	MPI_Allreduce(&tmp, &refine_floor, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD );
 	State::set_omega(State::get_omega() / s);
 	dynamic_cast<HydroGrid*>(get_root())->HydroGrid::mult_dx(cm);
+#ifndef USE_FMM
 	dynamic_cast<MultiGrid*>(get_root())->MultiGrid::mult_dx(cm);
+#endif
 	for (int l = 0; l < get_local_node_cnt(); l++) {
 		gg = dynamic_cast<BinaryStar*>(get_local_node(l));
 		for (int k = BW; k < GNX - BW; k++) {
@@ -559,10 +565,12 @@ void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {
 	get_root()->read_checkpoint(fp);
 	fclose(fp);
 	State::set_omega(omega);
+#ifndef USE_FMM
 	int count = OctNode::get_local_node_cnt();
 	for (int i = 0; i < count; i++) {
 		dynamic_cast<MultiGrid*>(OctNode::get_local_node(i))->phi_calc_amr_bounds();
 	}
+#endif
 #ifdef USE_FMM
 	FMM_solve();
 #else
@@ -663,15 +671,18 @@ void BinaryStar::run(int argc, char* argv[]) {
 			}
 			fprintf(fp, "\n");
 			fclose(fp);
+		}
 #ifdef USE_FMM
-			com_sum();
+		momentum_sum();
+		com_sum();
 #else
+		if (MPI_rank() == 0) {
 			_3Vec com = get_center_of_mass();
-			fp = fopen("com.dat", "at");
+			FILE* fp = fopen("com.dat", "at");
 			fprintf(fp, "%e %e %e %e %e %e %e\n", get_time(), com[0], com[1], com[2], com_vel_correction[0], com_vel_correction[1], com_vel_correction[2]);
 			fclose(fp);
-#endif
 		}
+#endif
 		//	State::set_drift_tor(((lz_t0 - sum[State::sy_index]) / sum[State::d_index])/dt);
 		Real ofreq = (OUTPUT_TIME_FREQ * (2.0 * M_PI) / State::get_omega());
 		if (step_cnt % CHECKPT_FREQ == 0) {
@@ -798,7 +809,11 @@ void BinaryStar::diagnostics(Real dt) {
 							dlz_hydro -= (b->get_flux(2, i, j, k + 1)[l] - b->get_flux(2, i, j, k)[l]) * da * b->HydroGrid::yc(j);
 							dlz_hydro += (*b)(i, j, k).source(b->HydroGrid::X(i, j, k), get_time())[l] * b->HydroGrid::yc(j) * dv;
 						}
+#ifdef USE_FMM
+						dlz_grav += b->dlz(i, j, k) * u.rho() * dv;
+#else
 						dlz_grav += b->glz(i, j, k) * u.rho() * dv;
+#endif
 						if (State::cylindrical) {
 							if (b->is_phys_bound(XL) && i == BW) {
 								dlz_flow_off -= (b->get_flux(0, i, j, k))[State::sy_index] * da;
@@ -866,8 +881,7 @@ void BinaryStar::diagnostics(Real dt) {
 		etall += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::pot_index];
 		//	lz += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::sy_index];
 		FILE* fp = fopen("diag.dat", "at");
-		fprintf(fp, "%.12e %.12e %i %.12e %.12e %.12e %.12e %.12e %.12e\n", get_time(), dt, get_root()->get_node_cnt(), etall, lz + get_flow_off()[State::sy_index],
-				-dlz_hydro, dlz_grav, -dlz_flow_off, -dlz_hydro + dlz_grav - dlz_flow_off);
+		fprintf(fp, "%.12e %.18e %.18e  %.12e\n", get_time(), lz + get_flow_off()[State::sy_index], etall, get_flow_off()[State::d_index]);
 		fclose(fp);
 	}
 }

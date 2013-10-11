@@ -30,6 +30,7 @@
 								<option id="intel.compilestep.general.optimization2.1065350418" name="Optimization Level" superClass="intel.compilestep.general.optimization2" value="general.opt.speedHLO" valueType="enumerated"/>
 								<option id="intel.compilestep.cg.reqintelextensions4.831332356" name="Intel Processor-Specific Optimization" superClass="intel.compilestep.cg.reqintelextensions4" value="intel.cg.reqhost" valueType="enumerated"/>
 								<option id="intel.compilestep.float.fpmodel.261768298" name="Floating Point Model" superClass="intel.compilestep.float.fpmodel" value="fpmodel.fast.2" valueType="enumerated"/>
+								<option id="intel.compilestep.optimization.ip.2089458738" name="Enable Interprocedural Optimization for Single File Compilation (-ip)" superClass="intel.compilestep.optimization.ip" value="false" valueType="boolean"/>
 								<inputType id="intel.cpp.compilestep.input.127043470" superClass="intel.cpp.compilestep.input"/>
 							</tool>
 							<tool command="mpicc" id="intel.c.compilestep.linux.x86_64.exe.rel.1410068414_11.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.rel_11.1.0">

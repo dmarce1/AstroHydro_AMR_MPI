@@ -7,6 +7,7 @@
 
 #ifndef MOMENT_H_
 #define MOMENT_H_
+#define USE_HIGH_ORDER_POT
 
 #include "../defs.h"
 #include "../vector.h"
@@ -16,6 +17,9 @@ class Moment {
 private:
 	Real m;
 	Real m2[6];
+#ifdef USE_HIGH_ORDER_POT
+	Real m3[10];
+#endif
 public:
 	bool is_leaf;
 	Moment& operator=(const Moment& m);
@@ -25,7 +29,10 @@ public:
 	Real M2(int i, int j) const;
 	Real& M();
 	Real& M2(int i, int j);
-
+#ifdef USE_HIGH_ORDER_POT
+	Real M3(int i, int j, int k) const;
+	Real& M3(int i, int j, int k);
+#endif
 	virtual ~Moment();
 };
 

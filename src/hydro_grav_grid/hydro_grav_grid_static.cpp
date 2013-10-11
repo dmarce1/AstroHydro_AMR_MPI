@@ -14,7 +14,7 @@ void HydroGravGrid::solve_poisson() {
 	Real start_time = MPI_Wtime();
 	set_gravity_source();
 	compute_physical_boundaries();
-	set_poisson_tolerance(Poisson::source_sum() / 1.0e+11);
+	set_poisson_tolerance(Poisson::source_sum() / 1.0e+10);
 //	printf("%e\n", Poisson::source_sum() / 1.0e+9);
 	poisson_boundary_time += MPI_Wtime() - start_time;
 	start_time = MPI_Wtime();

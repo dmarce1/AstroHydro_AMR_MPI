@@ -12,10 +12,15 @@
 
 #ifdef USE_FMM
 
+#define USE_FMM_ANGULAR
+
 #include "../hydro_grid/hydro_grid.h"
 
 #include "moment.h"
 #include "taylor.h"
+#ifdef USE_FMM_ANGULAR
+#include "taylor2.h"
+#endif
 
 #define FORDER 1
 #define FNX (INX+2*FBW)
@@ -26,6 +31,12 @@
 
 class HydroFMMGrid: public HydroGrid {
 private:
+#ifdef USE_FMM_ANGULAR
+	static MPI_Datatype MPI_taylor2_t;
+	static MPI_Datatype MPI_comm_taylor2_t[8];
+	Taylor2* taylor2_buffer;
+	Array3d<Taylor2, FNX, FNX, FNX> RxL;
+#endif
 	static Real d0_array[INX][INX][INX];
 	static Real d1_array[2 * INX + 1][2 * INX + 1][2 * INX + 1][3];
 	HydroFMMGrid* neighbors[26];
@@ -34,7 +45,7 @@ private:
 	static MPI_Datatype MPI_send_bnd_t[26];
 	static MPI_Datatype MPI_recv_bnd_t[26];
 	static MPI_Datatype MPI_comm_child1_t[8];
-	static MPI_Datatype MPI_comm_child2_t[8];
+	static MPI_Datatype MPI_comm_taylor_t[8];
 	static MPI_Datatype MPI_comm_child3_t[8];
 	static MPI_Datatype MPI_moment_t;
 	static MPI_Datatype MPI_taylor_t;
@@ -51,9 +62,12 @@ private:
 
 public:
 	static bool solve_on;
-	static void momentum_sum();
+	static Vector<Real,6> momentum_sum();
 	static Vector<Real, 4> com_sum();
 	Real gx(int i, int j, int k) const;
+#ifdef USE_FMM_ANGULAR
+	Real dlz(int i, int j, int k) const;
+#endif
 	Real gy(int i, int j, int k) const;
 	Real gz(int i, int j, int k) const;
 	virtual void compute_dudt(int dir);

@@ -10,6 +10,12 @@
 #include "../tag.h"
 #include <mpi.h>
 
+#define TAG_MOMENT 1
+#define TAG_4FORCE 5
+#define TAG_BOUND 2
+#define TAG_EXPANSION 3
+#define TAG_EXPANSION2 4
+
 int l1count = 0;
 int l2count = 0;
 
@@ -21,11 +27,15 @@ HydroFMMGrid::ifunc_t HydroFMMGrid::cs[FSTAGE + 1] = { &HydroFMMGrid::moments_re
 MPI_Datatype HydroFMMGrid::MPI_send_bnd_t[26];
 MPI_Datatype HydroFMMGrid::MPI_recv_bnd_t[26];
 MPI_Datatype HydroFMMGrid::MPI_comm_child1_t[8];
-MPI_Datatype HydroFMMGrid::MPI_comm_child2_t[8];
+MPI_Datatype HydroFMMGrid::MPI_comm_taylor_t[8];
 MPI_Datatype HydroFMMGrid::MPI_comm_child3_t[8];
 MPI_Datatype HydroFMMGrid::MPI_4force_t;
 MPI_Datatype HydroFMMGrid::MPI_moment_t;
 MPI_Datatype HydroFMMGrid::MPI_taylor_t;
+#ifdef USE_FMM_ANGULAR
+MPI_Datatype HydroFMMGrid::MPI_taylor2_t;
+MPI_Datatype HydroFMMGrid::MPI_comm_taylor2_t[8];
+#endif
 Real HydroFMMGrid::d0_array[INX][INX][INX];
 Real HydroFMMGrid::d1_array[2 * INX + 1][2 * INX + 1][2 * INX + 1][3];
 bool HydroFMMGrid::solve_on = true;
@@ -88,10 +98,16 @@ void HydroFMMGrid::allocate_arrays() {
 	m.allocate();
 	L.allocate();
 	g.allocate();
+#ifdef USE_FMM_ANGULAR
+	RxL.allocate();
+#endif
 	for (int k = 0; k < FNX; k++) {
 		for (int j = 0; j < FNX; j++) {
 			for (int i = 0; i < FNX; i++) {
 				L(i, j, k).zero();
+#ifdef USE_FMM_ANGULAR
+				RxL(i, j, k).zero();
+#endif
 				m(i, j, k).M() = 0.0;
 				m(i, j, k).X = 0.0;
 				g(i, j, k) = 0.0;
@@ -99,15 +115,22 @@ void HydroFMMGrid::allocate_arrays() {
 				for (int a = 0; a < 3; a++) {
 					for (int b = a; b < 3; b++) {
 						m(i, j, k).M2(a, b) = 0.0;
+#ifdef USE_HIGH_ORDER_POT
+						for (int c = b; c < 3; c++) {
+							m(i, j, k).M3(a, b, c) = 0.0;
+						}
+#endif
 					}
 				}
 			}
 		}
 	}
-
 }
 
 void HydroFMMGrid::deallocate_arrays() {
+#ifdef USE_FMM_ANGULAR
+	RxL.deallocate();
+#endif
 	HydroGrid::deallocate_arrays();
 	m.deallocate();
 	L.deallocate();
@@ -125,6 +148,9 @@ void HydroFMMGrid::moments_recv(int) {
 	for (int k = 0; k < FNX; k++) {
 		for (int j = 0; j < FNX; j++) {
 			for (int i = 0; i < FNX; i++) {
+#ifdef USE_FMM_ANGULAR
+				RxL(i, j, k).zero();
+#endif
 				L(i, j, k).zero();
 				m(i, j, k).M() = 0.0;
 				m(i, j, k).X = 0.0;
@@ -132,6 +158,11 @@ void HydroFMMGrid::moments_recv(int) {
 				for (int a = 0; a < 3; a++) {
 					for (int b = a; b < 3; b++) {
 						m(i, j, k).M2(a, b) = 0.0;
+#ifdef USE_HIGH_ORDER_POT
+						for (int c = b; c < 3; c++) {
+							m(i, j, k).M3(a, b, c) = 0.0;
+						}
+#endif
 					}
 				}
 			}
@@ -140,7 +171,7 @@ void HydroFMMGrid::moments_recv(int) {
 	for (ChildIndex ci = 0; ci < 8; ci++) {
 		child = dynamic_cast<HydroFMMGrid*>(get_child(ci));
 		if (child != NULL) {
-			tag = tag_gen(TAG_VDOWN, get_id(), ci);
+			tag = tag_gen(TAG_MOMENT, get_id(), ci);
 			MPI_Irecv(m.ptr(), 1, MPI_comm_child1_t[ci], get_child(ci)->proc(), tag, MPI_COMM_WORLD, recv_request + ci);
 		} else {
 			recv_request[ci] = MPI_REQUEST_NULL;
@@ -161,6 +192,11 @@ void HydroFMMGrid::moments_recv(int) {
 						for (int n = 0; n < 3; n++) {
 							for (int l = n; l < 3; l++) {
 								m(i, j, k).M2(n, l) = 0.0;
+#ifdef USE_HIGH_ORDER_POT
+								for (int a = l; a < 3; a++) {
+									m(i, j, k).M3(n, l, a) = 0.0;
+								}
+#endif
 							}
 						}
 					}
@@ -178,7 +214,7 @@ void HydroFMMGrid::_4force_recv(int) {
 	for (ChildIndex ci = 0; ci < 8; ci++) {
 		child = dynamic_cast<HydroFMMGrid*>(get_child(ci));
 		if (child != NULL) {
-			tag = tag_gen(TAG_VDOWN, get_id(), ci);
+			tag = tag_gen(TAG_4FORCE, get_id(), ci);
 			MPI_Irecv(g.ptr(), 1, MPI_comm_child3_t[ci], get_child(ci)->proc(), tag, MPI_COMM_WORLD, recv_request + ci);
 		} else {
 			recv_request[ci] = MPI_REQUEST_NULL;
@@ -218,6 +254,11 @@ void HydroFMMGrid::moments_send(int) {
 					for (int p = 0; p < 3; p++) {
 						for (int q = p; q < 3; q++) {
 							tmp.M2(p, q) = 0.0;
+#ifdef USE_HIGH_ORDER_POT
+							for (int a = q; a < 3; a++) {
+								tmp.M3(p, q, a) = 0.0;
+							}
+#endif
 						}
 					}
 					tmp.X = 0.0;
@@ -248,10 +289,20 @@ void HydroFMMGrid::moments_send(int) {
 							for (int c = 0; c < 2; c++) {
 								for (int p = 0; p < 3; p++) {
 									for (int q = p; q < 3; q++) {
-										Y = (tmp.X - m(i + a, j + b, k + c).X);
-										mass = m(i + a, j + b, k + c).M();
-										tmp.M2(p, q) += m(i + a, j + b, k + c).M2(p, q);
-										tmp.M2(p, q) += mass * Y[p] * Y[q];
+										Moment& child = m(i + a, j + b, k + c);
+										Y = child.X - tmp.X;
+										tmp.M2(p, q) += child.M2(p, q);
+										tmp.M2(p, q) += child.M() * Y[p] * Y[q];
+#ifdef USE_HIGH_ORDER_POT
+										for (int r = q; r < 3; r++) {
+											tmp.M3(p, q, r) += child.M() * Y[p] * Y[q] * Y[r];
+											tmp.M3(p, q, r) += child.M3(p, q, r);
+											tmp.M3(p, q, r) += child.M2(p, q) * Y[r];
+											tmp.M3(p, q, r) += child.M2(q, r) * Y[p];
+											tmp.M3(p, q, r) += child.M2(r, p) * Y[q];
+										}
+#endif
+
 									}
 								}
 							}
@@ -264,7 +315,7 @@ void HydroFMMGrid::moments_send(int) {
 		}
 //		printf("%i\n", cnt);
 		assert(cnt==INX * INX * INX / 8);
-		int tag = tag_gen(TAG_VDOWN, get_parent()->get_id(), my_child_index());
+		int tag = tag_gen(TAG_MOMENT, get_parent()->get_id(), my_child_index());
 		MPI_Isend(moment_buffer, cnt * sizeof(Moment), MPI_BYTE, get_parent()->proc(), tag, MPI_COMM_WORLD, send_request);
 	}
 	inc_instruction_pointer();
@@ -286,13 +337,13 @@ void HydroFMMGrid::_4force_send(int) {
 					for (int a = 0; a < 2; a++) {
 						for (int b = 0; b < 2; b++) {
 							for (int c = 0; c < 2; c++) {
-				//				mass = m(i + a, j + b, k + c).M();
-				//				mtot += mass;
-								tmp += g(i + a, j + b, k + c);// * mass;
+								//				mass = m(i + a, j + b, k + c).M();
+								//				mtot += mass;
+								tmp += g(i + a, j + b, k + c); // * mass;
 							}
 						}
 					}
-					tmp /= 8.0;// * mtot;
+					tmp /= 8.0; // * mtot;
 					_4force_buffer[cnt] = tmp;
 					cnt++;
 				}
@@ -300,7 +351,7 @@ void HydroFMMGrid::_4force_send(int) {
 		}
 //		printf("%i\n", cnt);
 		assert(cnt==INX * INX * INX / 8);
-		int tag = tag_gen(TAG_VDOWN, get_parent()->get_id(), my_child_index());
+		int tag = tag_gen(TAG_4FORCE, get_parent()->get_id(), my_child_index());
 		MPI_Isend(_4force_buffer, cnt * sizeof(Vector<Real, 4> ), MPI_BYTE, get_parent()->proc(), tag, MPI_COMM_WORLD, send_request);
 	}
 	inc_instruction_pointer();
@@ -342,8 +393,8 @@ void HydroFMMGrid::moments_communicate_all(int) {
 			send_request[dir] = MPI_REQUEST_NULL;
 		} else {
 			assert(dir==face_id[dir]);
-			tag_send = tag_gen(TAG_RELAX, neighbor->get_id(), face_opp_id[dir]);
-			tag_recv = tag_gen(TAG_RELAX, get_id(), face_id[dir]);
+			tag_send = tag_gen(TAG_BOUND, neighbor->get_id(), face_opp_id[dir]);
+			tag_recv = tag_gen(TAG_BOUND, get_id(), face_id[dir]);
 			MPI_Isend(m.ptr(), 1, MPI_send_bnd_t[dir], neighbor->proc(), tag_send, MPI_COMM_WORLD, send_request + dir);
 			MPI_Irecv(m.ptr(), 1, MPI_recv_bnd_t[dir], neighbor->proc(), tag_recv, MPI_COMM_WORLD, recv_request + dir);
 		}
@@ -368,6 +419,11 @@ void HydroFMMGrid::compute_interactions(int) {
 	Taylor *l;
 	int xlb, xub, ylb, yub, zlb, zub;
 	static const Real delta[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+#ifdef USE_FMM_ANGULAR
+	Taylor2 *rxl;
+//	static const Real eps[3][3][3] = { { { 0.0, 0.0, 0.0 }, { 0.0, 0.0, +1.0 }, { 0.0, -1.0, 0.0 } },
+//			{ { 0.0, 0.0, -1.0 }, { 0.0, 0.0, 0.0 }, { +1.0, 0.0, 0.0 } }, { { 0.0, +1.0, 0.0 }, { -1.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } } };
+#endif
 	const Real dxinv = 1.0 / get_dx();
 	for (int k0 = FBW; k0 < FNX - FBW; k0++) {
 		for (int j0 = FBW; j0 < FNX - FBW; j0++) {
@@ -387,6 +443,11 @@ void HydroFMMGrid::compute_interactions(int) {
 				l = L.ptr(i0, j0, k0);
 				l->zero();
 				Real tmp;
+				//Self potential
+			//	if (n1->is_leaf) {
+			//		const Real factor = (3.0 + 3.0 / sqrt(2.0) + 1.0 / sqrt(3.0)) / 3.0;
+			//		(*l)() -= factor * n1->M() / get_dx();
+			//	}
 				for (int k = zlb; k <= zub; k++) {
 					for (int j = ylb; j <= yub; j++) {
 						for (int i = xlb; i <= xub; i++) {
@@ -413,6 +474,10 @@ void HydroFMMGrid::compute_interactions(int) {
 											(*l)() += n2->M2(a, b) * d2 * 0.5 * Y[a] * Y[b];
 											(*l)(a) += d2 * (n2->M2(b, b) * 0.5 * Y[a] + n2->M2(a, b) * Y[b]);
 											for (int c = 0; c < 3; c++) {
+#ifdef USE_HIGH_ORDER_POT
+												(*l)() += n2->M3(a, b, c) * (1.0 / 6.0)
+														* (d3 * Y[a] * Y[b] * Y[c] + d2 * (Y[a] * delta[b][c] + Y[c] * delta[a][b] + Y[b] * delta[c][a]));
+#endif
 												(*l)(a) += n2->M2(b, c) * d3 * 0.5 * Y[a] * Y[b] * Y[c];
 											}
 										}
@@ -438,6 +503,22 @@ void HydroFMMGrid::compute_interactions(int) {
 						}
 					}
 				}
+#ifdef USE_FMM_ANGULAR
+				rxl = RxL.ptr(i0, j0, k0);
+				rxl->zero();
+				const _3Vec R = n1->X;
+				for (int a = 0; a < 2; a++) {
+					const int b = 1 - a;
+					const Real eps = Real(2 * b - 1);
+					(*rxl)() -= eps * R[a] * (*l)(b);
+					for (int m = 0; m < 3; m++) {
+						(*rxl)(m) -= eps * (+delta[a][m] * (*l)(b) + R[a] * (*l)(b, m));
+						for (int n = 0; n <= m; n++) {
+							(*rxl)(m, n) -= eps * (delta[a][n] * (*l)(b, m) + delta[a][m] * (*l)(b, n) + R[a] * (*l)(b, n, m));
+						}
+					}
+				}
+#endif
 			}
 		}
 	}
@@ -450,9 +531,14 @@ void HydroFMMGrid::expansion_recv(int) {
 		const HydroFMMGrid* p = dynamic_cast<const HydroFMMGrid*>(get_parent());
 		int i, j, k, sz, tag;
 		Real a;
+		tag = tag_gen(TAG_EXPANSION, get_id(), ci);
 		taylor_buffer = new Taylor[INX * INX * INX / 8];
-		tag = tag_gen(TAG_COARSE, get_id(), ci);
 		MPI_Irecv(taylor_buffer, INX * INX * INX * sizeof(Taylor) / 8, MPI_BYTE, p->proc(), tag, MPI_COMM_WORLD, recv_request + 0);
+#ifdef USE_FMM_ANGULAR
+		taylor2_buffer = new Taylor2[INX * INX * INX / 8];
+		tag = tag_gen(TAG_EXPANSION2, get_id(), ci);
+		MPI_Irecv(taylor2_buffer, INX * INX * INX * sizeof(Taylor2) / 8, MPI_BYTE, p->proc(), tag, MPI_COMM_WORLD, recv_request + 1);
+#endif
 	}
 	inc_instruction_pointer();
 
@@ -461,9 +547,16 @@ void HydroFMMGrid::expansion_recv(int) {
 void HydroFMMGrid::expansion_recv_wait(int) {
 	bool rc;
 	int cnt;
+#ifdef USE_FMM_ANGULAR
+	int cnt2;
+#endif
 	if (get_level() != 0) {
 		int flag;
+#ifdef USE_FMM_ANGULAR
+		MPI_Testall(2, recv_request, &flag, MPI_STATUS_IGNORE );
+#else
 		MPI_Test(recv_request, &flag, MPI_STATUS_IGNORE );
+#endif
 		rc = flag;
 		if (rc) {
 			Taylor pL;
@@ -471,9 +564,18 @@ void HydroFMMGrid::expansion_recv_wait(int) {
 			_3Vec Y, Z;
 			Real mtmp;
 			cnt = 0;
+#ifdef USE_FMM_ANGULAR
+			cnt2 = 0;
+			Taylor2 RxpL;
+			Taylor2 RxcL;
+#endif
 			for (int k0 = FBW; k0 < FNX - FBW; k0 += 2) {
 				for (int j0 = FBW; j0 < FNX - FBW; j0 += 2) {
 					for (int i0 = FBW; i0 < FNX - FBW; i0 += 2) {
+#ifdef USE_FMM_ANGULAR
+						RxpL = taylor2_buffer[cnt2];
+						cnt2++;
+#endif
 						pL = taylor_buffer[cnt];
 						cnt++;
 						Z = 0.0;
@@ -521,6 +623,24 @@ void HydroFMMGrid::expansion_recv_wait(int) {
 										}
 									}
 									L(i, j, k) += cL;
+#ifdef USE_FMM_ANGULAR
+									RxcL.zero();
+									RxcL() += RxpL();
+									for (int a = 0; a < 3; a++) {
+										RxcL() += RxpL(a) * Y[a];
+										RxcL(a) += RxpL(a);
+										for (int b = 0; b < 3; b++) {
+											RxcL() += RxpL(a, b) * Y[a] * Y[b] * 0.5;
+											RxcL(a) += RxpL(a, b) * Y[b];
+											for (int c = 0; c < 3; c++) {
+											}
+										}
+										for (int b = a; b < 3; b++) {
+											RxcL(a, b) += RxpL(a, b);
+										}
+									}
+									RxL(i, j, k) += RxcL;
+#endif
 								}
 							}
 						}
@@ -528,6 +648,9 @@ void HydroFMMGrid::expansion_recv_wait(int) {
 				}
 			}
 			delete[] taylor_buffer;
+#ifdef USE_FMM_ANGULAR
+			delete[] taylor2_buffer;
+#endif
 		}
 	} else {
 		rc = true;
@@ -544,9 +667,16 @@ void HydroFMMGrid::expansion_send(int) {
 		child = dynamic_cast<HydroFMMGrid*>(get_child(ci));
 		if (child == NULL) {
 			send_request[ci] = MPI_REQUEST_NULL;
+#ifdef USE_FMM_ANGULAR
+			send_request[ci + 8] = MPI_REQUEST_NULL;
+#endif
 		} else {
-			tag = tag_gen(TAG_COARSE, child->get_id(), ci);
-			MPI_Isend(L.ptr(), 1, MPI_comm_child2_t[ci], child->proc(), tag, MPI_COMM_WORLD, send_request + ci);
+			tag = tag_gen(TAG_EXPANSION, child->get_id(), ci);
+			MPI_Isend(L.ptr(), 1, MPI_comm_taylor_t[ci], child->proc(), tag, MPI_COMM_WORLD, send_request + ci);
+#ifdef USE_FMM_ANGULAR
+			tag = tag_gen(TAG_EXPANSION2, child->get_id(), ci);
+			MPI_Isend(RxL.ptr(), 1, MPI_comm_taylor2_t[ci], child->proc(), tag, MPI_COMM_WORLD, send_request + ci + 8);
+#endif
 		}
 	}
 	for (int k = FBW; k < FNX - FBW; k++) {
@@ -565,7 +695,11 @@ void HydroFMMGrid::expansion_send(int) {
 
 void HydroFMMGrid::expansion_send_wait(int) {
 	int flag;
+#ifdef USE_FMM_ANGULAR
+	MPI_Testall(16, send_request, &flag, MPI_STATUS_IGNORE );
+#else
 	MPI_Testall(8, send_request, &flag, MPI_STATUS_IGNORE );
+#endif
 	if (flag) {
 		inc_instruction_pointer();
 	}
@@ -620,15 +754,20 @@ void HydroFMMGrid::compute_dudt(int dir) {
 					D0 = get_dudt(i, j, k);
 					if (State::cylindrical) {
 						Real R = sqrt(x[0] * x[0] + x[1] * x[1]);
-						D[State::sx_index] = d * (x[0] * gx(i, j, k) + x[1] * gy(i, j, k)) / R;
+#ifdef USE_FMM
+						D[State::sy_index] = d * dlz(i, j, k);
+						//			printf( "%e %e\n", d * (x[0] * gy(i, j, k) - x[1] * gx(i, j, k)), d*dlz(i, j, k) );
+#else
 						D[State::sy_index] = d * (x[0] * gy(i, j, k) - x[1] * gx(i, j, k));
+#endif
+						D[State::sx_index] = d * (x[0] * gx(i, j, k) + x[1] * gy(i, j, k)) / R;
 					} else {
 						D[State::sx_index] = d * gx(i, j, k);
 						D[State::sy_index] = d * gy(i, j, k);
 					}
 					D[State::sz_index] = d * gz(i, j, k);
 					D[State::et_index] = D0[State::pot_index] - (*this)(i, j, k).pot() / d * D0[State::d_index];
-					D[State::pot_index] = -D0[State::pot_index];
+					//				D[State::pot_index] = -D0[State::pot_index];
 					add_to_dudt(i, j, k, D);
 				}
 			}
@@ -679,17 +818,35 @@ void HydroFMMGrid::from_conserved_energy() {
 	}
 }
 
-void HydroFMMGrid::momentum_sum() {
+Vector<Real, 6> HydroFMMGrid::momentum_sum() {
 	HydroFMMGrid* g0;
 	Real sum[3];
+	Real lz, lz2, sx2, sy2, R, x, y;
+	lz = 0.0;
+	lz2 = 0.0;
+	sx2 = sy2 = 0.0;
 	sum[0] = sum[1] = sum[2] = 0.0;
 	Real norm = 0.0;
+	Real norml = 0.0, this_sr, this_lz;
 	for (int n = 0; n < get_local_node_cnt(); n++) {
 		g0 = dynamic_cast<HydroFMMGrid*>(get_local_node(n));
 		for (int k = FBW; k < FNX - FBW; k++) {
 			for (int j = FBW; j < FNX - FBW; j++) {
 				for (int i = FBW; i < FNX - FBW; i++) {
 					if (g0->m(i, j, k).is_leaf) {
+#ifdef USE_FMM_ANGULAR
+						x = g0->m(i, j, k).X[0];
+						y = g0->m(i, j, k).X[1];
+						R = sqrt(x * x + y * y);
+						this_lz = g0->dlz(i + BW - FBW, j + BW - FBW, k + BW - FBW) * g0->m(i, j, k).M();
+						lz2 += this_lz;
+						this_sr = (g0->g(i, j, k)[0] * x + g0->g(i, j, k)[1] * y) * g0->m(i, j, k).M();
+						this_sr /= R;
+						sx2 += x / R * this_sr - y / R / R * this_lz;
+						sy2 += y / R * this_sr + x / R / R * this_lz;
+#endif
+						norml += fabs(g0->dlz(i + BW - FBW, j + BW - FBW, k + BW - FBW) * g0->m(i, j, k).M());
+						lz += (g0->g(i, j, k)[1] * g0->m(i, j, k).X[0] - g0->g(i, j, k)[0] * g0->m(i, j, k).X[1]) * g0->m(i, j, k).M();
 						sum[0] += g0->g(i, j, k)[0] * g0->m(i, j, k).M();
 						sum[1] += g0->g(i, j, k)[1] * g0->m(i, j, k).M();
 						sum[2] += g0->g(i, j, k)[2] * g0->m(i, j, k).M();
@@ -701,14 +858,32 @@ void HydroFMMGrid::momentum_sum() {
 	}
 	Real sum0[3];
 	Real norm0 = norm;
+	Real lz0 = lz;
 	sum0[0] = sum[0];
 	sum0[1] = sum[1];
 	sum0[2] = sum[2];
 	MPI_Allreduce(sum0, sum, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
 	MPI_Allreduce(&norm0, &norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	MPI_Allreduce(&lz0, &lz, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	lz0 = sx2;
+	MPI_Allreduce(&lz0, &sx2, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	lz0 = sy2;
+	MPI_Allreduce(&lz0, &sy2, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	lz0 = lz2;
+	MPI_Allreduce(&lz0, &lz2, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	norm0 = norml;
+	MPI_Allreduce(&norm0, &norml, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
 	if (MPI_rank() == 0) {
-		printf("Momentum Sum = %e %e %e\n", sum[0] / norm, sum[1] / norm, sum[2] / norm);
+		printf("Momentum Sum = %e %e %e %e %e\n", sum[0] / norm, sum[1] / norm, sum[2] / norm, lz, lz2);
 	}
+	Vector<Real, 6> ret_vec;
+	ret_vec[0] = lz / norml;
+	ret_vec[1] = lz2 / norml;
+	ret_vec[2] = sum[0] / norm;
+	ret_vec[3] = sx2 / norm;
+	ret_vec[4] = sum[1] / norm;
+	ret_vec[5] = sy2 / norm;
+	return ret_vec;
 }
 
 Vector<Real, 4> HydroFMMGrid::com_sum() {
@@ -887,6 +1062,12 @@ void HydroFMMGrid::find_neighbors() {
 	}
 }
 
+#ifdef USE_FMM_ANGULAR
+Real HydroFMMGrid::dlz(int i, int j, int k) const {
+	return RxL(i + FBW - BW, j + FBW - BW, k + FBW - BW)() * PhysicalConstants::G;
+}
+#endif
+
 void HydroFMMGrid::pot_to_hydro_grid() {
 	HydroFMMGrid* p;
 	HydroGrid* g;
@@ -948,6 +1129,10 @@ void HydroFMMGrid::MPI_datatypes_init() {
 		MPI_Type_commit(&MPI_moment_t);
 		MPI_Type_contiguous(sizeof(Taylor), MPI_BYTE, &MPI_taylor_t);
 		MPI_Type_commit(&MPI_taylor_t);
+#ifdef USE_FMM_ANGULAR
+		MPI_Type_contiguous(sizeof(Taylor2), MPI_BYTE, &MPI_taylor2_t);
+		MPI_Type_commit(&MPI_taylor2_t);
+#endif
 
 #define XLYL 0
 #define XLYU 1
@@ -1044,7 +1229,10 @@ void HydroFMMGrid::MPI_datatypes_init() {
 					xub = xlb + ds - 1;
 					ci = 4 * k + 2 * j + i;
 					Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_comm_child1_t + ci, xlb, xub, ylb, yub, zlb, zub, MPI_moment_t);
-					Array3d<Taylor, FNX, FNX, FNX>::mpi_datatype(MPI_comm_child2_t + ci, xlb, xub, ylb, yub, zlb, zub, MPI_taylor_t);
+					Array3d<Taylor, FNX, FNX, FNX>::mpi_datatype(MPI_comm_taylor_t + ci, xlb, xub, ylb, yub, zlb, zub, MPI_taylor_t);
+#ifdef USE_FMM_ANGULAR
+					Array3d<Taylor, FNX, FNX, FNX>::mpi_datatype(MPI_comm_taylor2_t + ci, xlb, xub, ylb, yub, zlb, zub, MPI_taylor2_t);
+#endif
 					Array3d<Moment, FNX, FNX, FNX>::mpi_datatype(MPI_comm_child3_t + ci, xlb, xub, ylb, yub, zlb, zub, MPI_4force_t);
 				}
 			}

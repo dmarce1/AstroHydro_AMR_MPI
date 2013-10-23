@@ -164,7 +164,7 @@ public:
 		return (pot() - rot_pot(x)) / rho();
 	}
 	Real virial(const _3Vec& x) const {
-		Real ek = (vx(x) * vx(x) + vy(x) * vy(x) + vz() * vz()) * 0.5 * rho() + ei(x);
+		Real ek = (vx(x) * vx(x) + vy(x) * vy(x) + vz() * vz()) * 0.5 * rho() + 1.5 * pd();
 		Real ep = 0.5 * (pot() - rot_pot(x));
 		return 2.0 * ek + ep;
 	}

@@ -109,6 +109,8 @@ public:
 			return gy(i, j, k);
 		case 10:
 			return gz(i, j, k);
+		case 11:
+			return (*this)(i, j, k).pg(this->X(i,j,k));
 		}
 #endif
 		assert(false);
@@ -138,12 +140,14 @@ public:
 			return "gy";
 		case 10:
 			return "gz";
+		case 11:
+			return "p";
 		}
 		assert(false);
 		return "";
 	}
 	virtual int nvar_output() const {
-		return 11;
+		return 12;
 	}
 };
 #endif

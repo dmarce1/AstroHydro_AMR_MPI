@@ -8,7 +8,7 @@
 
 #ifdef USE_HYDRO_GRID
 
-#define GRID_CS_SIZE 22
+#define GRID_CS_SIZE 23
 #define GRID_ES_SIZE 7
 
 #ifndef GNX
@@ -31,15 +31,14 @@ private:
 	static MPI_Datatype MPI_guard_send_t[6];
 	static MPI_Datatype MPI_guard_recv_t[6];
 	static MPI_Datatype MPI_child_t[8];
+public:
 	static Real _dt, _beta;
+private:
 	Real time;
 	static State FO0;
 	static State FO;
-	Array3d<State, GNX, GNX, GNX> U;
-	Array3d<Vector<Real, STATE_NF>, GNX, GNX, GNX> D;
 	Array3d<Vector<Real, STATE_NF>, GNX, GNX, GNX> Fv[3];
 	Array3d<Real, GNX, GNX, GNX> Fs[3];
-	Array3d<State, GNX, GNX, GNX> U0;
 	Array3d<Vector<Real, STATE_NF>, GNX, GNX, GNX> E;
 	bool amr_has[3];
 	int amr_cnt[3];
@@ -73,7 +72,6 @@ private:
 	void flux_cf_adjust_recv_wait(int);
 	void amr_bnd_send(int);
 	void amr_bnd_send_wait(int);
-	void compute_update(int);
 	void redistribute_send();
 	void redistribute_recv();
 	void sync(int);
@@ -82,6 +80,10 @@ private:
 	void error_from_parent_send_wait(int);
 	void error_from_parent_recv_wait(int);
 protected:
+	Array3d<State, GNX, GNX, GNX> U;
+		Array3d<State, GNX, GNX, GNX> U0;
+	Array3d<Vector<Real, STATE_NF>, GNX, GNX, GNX> D;
+	virtual void compute_update(int);
 	static Reconstruct reconstruct;
 	static Real eax;
 	Array3d<State, GNX, GNX, GNX> E0;

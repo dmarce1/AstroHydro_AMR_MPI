@@ -22,13 +22,13 @@ PoissonTest* PoissonTest::new_octnode() const {
 void PoissonTest::initialize() {
 	Real r1;
 	Real x, y, z;
-	const Real dm = 1.0 / (0.1 * 0.1 * 0.1 * 4.0 / 3.0 * M_PI);
+	const Real dm = 1.0/ (0.1 * 0.1 * 0.1 * 4.0 / 3.0 * M_PI);
 	int M = 16;
 	Real r0, a;
 #ifdef USE_FMM
-	for (int k = BW; k < GNX - BW; k++) {
-		for (int j = BW; j < GNX - BW; j++) {
-			for (int i = BW; i < GNX - BW; i++) {
+	for (int k = 0; k < GNX ; k++) {
+		for (int j = 0; j < GNX; j++) {
+			for (int i = 0; i < GNX ; i++) {
 #else
 				for (int k = 0; k < PNX; k++) {
 					for (int j = 0; j < PNX; j++) {
@@ -37,12 +37,13 @@ void PoissonTest::initialize() {
 				x = this->xc(i);
 				y = this->yc(j);
 				z = this->zc(k);
-				r0 = max(0.05, get_dx());
+				r0 = max(0.1, get_dx());
 				a = 0.0;
-				r1 = sqrt(pow(x - x0 - 0.2, 2) + pow(y - y0, 2) + pow(z - z0, 2));
-				if (r1 < r0 - sqrt(3.0 / 4.0) * get_dx()) {
+				//			r1 = sqrt(pow(x - x0 - 0.2, 2) + pow(y - y0, 2) + pow(z - z0, 2));
+				r1 = sqrt(pow(x - x0, 2) + pow(y - y0, 2) + pow(z - z0, 2));
+				if (r1 < r0 - 2.0 * sqrt(3.0 / 4.0) * get_dx()) {
 					a += dm;
-				} else if (r1 > r0 + sqrt(3.0 / 4.0) * get_dx()) {
+				} else if (r1 > r0 + 2.0 * sqrt(3.0 / 4.0) * get_dx()) {
 					a += 1.0e-40;
 				} else {
 					for (int i1 = 0; i1 < M; i1++) {
@@ -51,9 +52,9 @@ void PoissonTest::initialize() {
 								x = xc(i) + get_dx() * (Real(i1) + 0.5) / Real(M) - 0.5 * get_dx();
 								y = yc(j) + get_dx() * (Real(j1) + 0.5) / Real(M) - 0.5 * get_dx();
 								z = zc(k) + get_dx() * (Real(k1) + 0.5) / Real(M) - 0.5 * get_dx();
-								r1 = sqrt(pow(x - x0 - 0.2, 2) + pow(y - y0, 2) + pow(z - z0, 2));
+								r1 = sqrt(pow(x - x0, 2) + pow(y - y0, 2) + pow(z - z0, 2));
 								if (r1 < r0) {
-									a += 2.0 * dm / M / M / M;
+									a += dm / M / M / M;
 								} else {
 									a += 1.0e-40 / M / M / M;
 								}
@@ -61,31 +62,31 @@ void PoissonTest::initialize() {
 						}
 					}
 				}
-				r1 = sqrt(pow(x - x0 + 0.2, 2) + pow(y - y0, 2) + pow(z - z0, 2));
-				if (r1 < r0 - sqrt(3.0 / 4.0) * get_dx()) {
-					a += dm;
-				} else if (r1 > r0 + sqrt(3.0 / 4.0) * get_dx()) {
-					a += 1.0e-40;
-				} else {
-					for (int i1 = 0; i1 < M; i1++) {
-						for (int j1 = 0; j1 < M; j1++) {
-							for (int k1 = 0; k1 < M; k1++) {
-								x = xc(i) + get_dx() * (Real(i1) + 0.5) / Real(M) - 0.5 * get_dx();
-								y = yc(j) + get_dx() * (Real(j1) + 0.5) / Real(M) - 0.5 * get_dx();
-								z = zc(k) + get_dx() * (Real(k1) + 0.5) / Real(M) - 0.5 * get_dx();
-								r1 = sqrt(pow(x - x0 + 0.2, 2) + pow(y - y0, 2) + pow(z - z0, 2));
-								if (r1 < r0) {
-									a += 2.0 * dm / M / M / M;
-								} else {
-									a += 1.0e-40 / M / M / M;
-								}
-							}
-						}
-					}
-				}
+				/*			r1 = sqrt(pow(x - x0 + 0.2, 2) + pow(y - y0, 2) + pow(z - z0, 2));
+				 if (r1 < r0 - sqrt(3.0 / 4.0) * get_dx()) {
+				 a += dm;
+				 } else if (r1 > r0 + sqrt(3.0 / 4.0) * get_dx()) {
+				 a += 1.0e-40;
+				 } else {
+				 for (int i1 = 0; i1 < M; i1++) {
+				 for (int j1 = 0; j1 < M; j1++) {
+				 for (int k1 = 0; k1 < M; k1++) {
+				 x = xc(i) + get_dx() * (Real(i1) + 0.5) / Real(M) - 0.5 * get_dx();
+				 y = yc(j) + get_dx() * (Real(j1) + 0.5) / Real(M) - 0.5 * get_dx();
+				 z = zc(k) + get_dx() * (Real(k1) + 0.5) / Real(M) - 0.5 * get_dx();
+				 r1 = sqrt(pow(x - x0 + 0.2, 2) + pow(y - y0, 2) + pow(z - z0, 2));
+				 if (r1 < r0) {
+				 a += 2.0 * dm / M / M / M;
+				 } else {
+				 a += 1.0e-40 / M / M / M;
+				 }
+				 }
+				 }
+				 }
+				 }*/
 #ifdef USE_FMM
 				(*this)(i, j, k) = Vector<Real, STATE_NF>(0.0);
-				(*this)(i, j, k).set_rho(a / 4.0 / M_PI);
+				(*this)(i, j, k).set_rho(max(a / 4.0 / M_PI, 1.0e-10));
 #else
 				set_source(i, j, k, a);
 #endif
@@ -128,17 +129,21 @@ Real PoissonTest::get_output_point(int i, int j, int k, int l) const {
 		return analytic_force(xc(i), yc(j), zc(k))[1];
 	case 8:
 		return analytic_force(xc(i), yc(j), zc(k))[2];
-#ifdef USE_FMM_ANGULAR
+#ifdef USE_FMM
 	case 9:
-		return dlz(i, j, k);
+		return get_dphi_dt(i, j, k);
+	case 10:
+		return get_drho_dt(i, j, k);
+	case 11:
+		return g_energy(i, j, k);
 #endif
 	}
 	return 0.0;
 }
 
 int PoissonTest::nvar_output() const {
-#ifdef USE_FMM_ANGULAR
-	return 10;
+#ifdef USE_FMM;
+	return 12;
 #else
 	return 9;
 #endif
@@ -164,9 +169,13 @@ const char* PoissonTest::output_field_names(int i) const {
 		return "fy_a";
 	case 8:
 		return "fz_a";
-#ifdef USE_FMM_ANGULAR
+#ifdef USE_FMM
 	case 9:
-		return "dlz";
+		return "dphi_dt";
+	case 10:
+		return "drho_dt";
+	case 11:
+		return "g_energy";
 #endif
 	}
 	return "dummy";

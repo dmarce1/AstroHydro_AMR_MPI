@@ -15,7 +15,7 @@
 					<folderInfo id="intel.linux.x86_64.exe.rel.416340396._11.1.0" name="/" resourcePath="">
 						<toolChain id="intel.toolchain.linux.x86_64.exe.rel.1779698088_11.1.0" name="Intel Toolchain for Executable on Intel(R) 64" superClass="intel.toolchain.linux.x86_64.exe.rel_11.1.0">
 							<targetPlatform archList="x86_64" binaryParser="org.eclipse.cdt.core.ELF" id="intel.platform.linux.x86_64.exe.rel_11.1.0.85753045" name="Platform.Executable.Release" osList="linux" superClass="intel.platform.linux.x86_64.exe.rel_11.1.0"/>
-							<builder buildPath="${workspace_loc:/AstroHydro_AMR_MPI/Release_11.1.0}" id="intel.builder.linux.x86_64.exe.rel.1580276433_11.1.0" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Intel Builder" superClass="intel.builder.linux.x86_64.exe.rel_11.1.0"/>
+							<builder buildPath="${workspace_loc:/AstroHydro_AMR_MPI/Release_11.1.0}" id="intel.builder.linux.x86_64.exe.rel.1580276433_11.1.0" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Intel Builder" parallelBuildOn="true" parallelizationNumber="4" superClass="intel.builder.linux.x86_64.exe.rel_11.1.0"/>
 							<tool command="mpic++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548_11.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.rel_11.1.0">
 								<option id="intel.compilestep.preprocessor.includedirectories.1752069745" name="Additional Include Directories (-I)" superClass="intel.compilestep.preprocessor.includedirectories" valueType="includePath">
 									<listOptionValue builtIn="false" value="/home/dmarce1/include"/>
@@ -23,7 +23,7 @@
 								<option id="intel.compilestep.preprocessor.defsym.2092334741" name="Preprocessor Definitions (-D)" superClass="intel.compilestep.preprocessor.defsym" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="NDEBUG"/>
 								</option>
-								<option id="intel.compilestep.coptions.567593646" name="Additional Options" superClass="intel.compilestep.coptions" value="" valueType="string"/>
+								<option id="intel.compilestep.coptions.567593646" name="Additional Options" superClass="intel.compilestep.coptions" value="-Wuninitialized" valueType="string"/>
 								<option id="intel.compilestep.optimization.optprefetch.1807505230" name="Enable Prefetch Insertion (-opt-prefetch[=n])" superClass="intel.compilestep.optimization.optprefetch" value="optprefetch.three" valueType="enumerated"/>
 								<option id="intel.compilestep.optimization.ipo.1699619276" name="Enable Whole Program Optimization (-ipo)" superClass="intel.compilestep.optimization.ipo" value="true" valueType="boolean"/>
 								<option id="intel.compilestep.optimization.inline.expand1.1136322400" name="Inline Function Expansion" superClass="intel.compilestep.optimization.inline.expand1" value="inl.exp1.anysuitable" valueType="enumerated"/>
@@ -31,9 +31,18 @@
 								<option id="intel.compilestep.cg.reqintelextensions4.831332356" name="Intel Processor-Specific Optimization" superClass="intel.compilestep.cg.reqintelextensions4" value="intel.cg.reqhost" valueType="enumerated"/>
 								<option id="intel.compilestep.float.fpmodel.261768298" name="Floating Point Model" superClass="intel.compilestep.float.fpmodel" value="fpmodel.fast.2" valueType="enumerated"/>
 								<option id="intel.compilestep.optimization.ip.2089458738" name="Enable Interprocedural Optimization for Single File Compilation (-ip)" superClass="intel.compilestep.optimization.ip" value="false" valueType="boolean"/>
+								<option id="intel.compilestep.optimization.unrollcnt.1166286300" name="Loop Unroll Count(0=disable, default=blank) (-unroll [n])" superClass="intel.compilestep.optimization.unrollcnt" value="" valueType="string"/>
+								<option id="intel.compilestep.data.fno-alias.955438835" name="Assume No Aliasing in Program (-fno-alias)" superClass="intel.compilestep.data.fno-alias" value="true" valueType="boolean"/>
+								<option id="intel.compilestep.data.alias_args.1977339082" name="Enable Argument Aliasing (-fargument-alias)" superClass="intel.compilestep.data.alias_args" value="false" valueType="boolean"/>
+								<option id="intel.compilestep.language.ansi_alias.49059106" name="Enable Use of ANSI Aliasing Rules in Optimizations (-ansi-alias)" superClass="intel.compilestep.language.ansi_alias" value="true" valueType="boolean"/>
+								<option id="intel.compilestep.optimization.parallel.1709054682" name="Parallelization (-parallel)" superClass="intel.compilestep.optimization.parallel" value="false" valueType="boolean"/>
+								<option id="intel.compilestep.float.speculation.2030649195" name="Floating-Point Speculation" superClass="intel.compilestep.float.speculation" value="speculation.fast" valueType="enumerated"/>
+								<option id="intel.compilestep.diagnostics.sc.level11.1550665574" name="Level Of Source Code Analysis" superClass="intel.compilestep.diagnostics.sc.level11" value="diagnostics.sv.default" valueType="enumerated"/>
+								<option id="intel.compilestep.language.ansi_conformance.1492713799" name="ANSI Conformance" superClass="intel.compilestep.language.ansi_conformance" value="ansi_conformance.1" valueType="enumerated"/>
 								<inputType id="intel.cpp.compilestep.input.127043470" superClass="intel.cpp.compilestep.input"/>
 							</tool>
 							<tool command="mpicc" id="intel.c.compilestep.linux.x86_64.exe.rel.1410068414_11.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.rel_11.1.0">
+								<option id="intel.compilestep.optimization.unrollcnt.1039053116" name="Loop Unroll Count(0=disable, default=blank) (-unroll [n])" superClass="intel.compilestep.optimization.unrollcnt" value="6" valueType="string"/>
 								<inputType id="intel.c.compilestep.input.821066972" superClass="intel.c.compilestep.input"/>
 							</tool>
 							<tool id="intel.c.linkstep.linux.x86_64.exe.rel.299900819_11.1.0" name="Intel Intel(R) 64 C Linker" superClass="intel.c.linkstep.linux.x86_64.exe.rel_11.1.0">
@@ -60,6 +69,8 @@
 									<listOptionValue builtIn="false" value="/home/dmarce1/lib"/>
 								</option>
 								<option id="intel.linkstep.general.optimization2.1410655593" name="Optimization Level" superClass="intel.linkstep.general.optimization2" value="general.opt.speedHLO" valueType="enumerated"/>
+								<option id="intel.linkstep.parallel.1219261518" name="Parallelization (-parallel)" superClass="intel.linkstep.parallel" value="false" valueType="boolean"/>
+								<option id="intel.linkstep.sc.37430074" name="Level of Static Analysis" superClass="intel.linkstep.sc" value="diagnostics.sv.default" valueType="enumerated"/>
 								<inputType id="intel.linkstep.input.803248780" superClass="intel.linkstep.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -140,8 +151,16 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="AstroHydro_AMR_MPI.intel.linux.executable.2.505008451" name="Executable" projectType="intel.linux.executable.2"/>
 	</storageModule>
+	<storageModule moduleId="refreshScope" versionNumber="1">
+		<resource resourceType="PROJECT" workspacePath="/AstroHydro_AMR_MPI"/>
+	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="intel.linux.x86_64.exe.rel.416340396_11.1.0;intel.linux.x86_64.exe.rel.416340396._11.1.0;intel.cpp.compilestep.linux.x86_64.exe.rel.692072548_11.1.0;intel.cpp.compilestep.input.127043470">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="intel.linux.x86_64.exe.rel.416340396_11.1.0;intel.linux.x86_64.exe.rel.416340396._11.1.0;intel.c.compilestep.linux.x86_64.exe.rel.1410068414_11.1.0;intel.c.compilestep.input.821066972">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile"/>
+		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="refreshScope"/>
 </cproject>

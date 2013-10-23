@@ -370,11 +370,9 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	Real verr;
 	_3Vec O;
 	for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
-		if (scf_iter != 0) {
-			check_for_refine();
-		}
 		if (scf_iter % 10 == 0) {
 			get_root()->output("S", scf_iter/10, GNX, BW);
+			check_for_refine();
 		}
 		if (scf_iter % 50 == 0 && scf_iter != 0) {
 			if (cur_lev < maxlev) {
@@ -554,10 +552,9 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			}
 		}
 	}
-	get_root()->output("S", scf_iter/10, GNX, BW);
 	FMM_solve();
 	FMM_from_children();
-	get_root()->output("S", scf_iter + 1, GNX, BW);
+	get_root()->output("S", scf_iter/10, GNX, BW);
 }
 
 void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {

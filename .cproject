@@ -32,9 +32,9 @@
 								<option id="intel.compilestep.float.fpmodel.261768298" name="Floating Point Model" superClass="intel.compilestep.float.fpmodel" value="fpmodel.strict" valueType="enumerated"/>
 								<option id="intel.compilestep.optimization.ip.2089458738" name="Enable Interprocedural Optimization for Single File Compilation (-ip)" superClass="intel.compilestep.optimization.ip" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.optimization.unrollcnt.1166286300" name="Loop Unroll Count(0=disable, default=blank) (-unroll [n])" superClass="intel.compilestep.optimization.unrollcnt" value="" valueType="string"/>
-								<option id="intel.compilestep.data.fno-alias.955438835" name="Assume No Aliasing in Program (-fno-alias)" superClass="intel.compilestep.data.fno-alias" value="true" valueType="boolean"/>
-								<option id="intel.compilestep.data.alias_args.1977339082" name="Enable Argument Aliasing (-fargument-alias)" superClass="intel.compilestep.data.alias_args" value="false" valueType="boolean"/>
-								<option id="intel.compilestep.language.ansi_alias.49059106" name="Enable Use of ANSI Aliasing Rules in Optimizations (-ansi-alias)" superClass="intel.compilestep.language.ansi_alias" value="true" valueType="boolean"/>
+								<option id="intel.compilestep.data.fno-alias.955438835" name="Assume No Aliasing in Program (-fno-alias)" superClass="intel.compilestep.data.fno-alias" value="false" valueType="boolean"/>
+								<option id="intel.compilestep.data.alias_args.1977339082" name="Enable Argument Aliasing (-fargument-alias)" superClass="intel.compilestep.data.alias_args" value="true" valueType="boolean"/>
+								<option id="intel.compilestep.language.ansi_alias.49059106" name="Enable Use of ANSI Aliasing Rules in Optimizations (-ansi-alias)" superClass="intel.compilestep.language.ansi_alias" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.optimization.parallel.1709054682" name="Parallelization (-parallel)" superClass="intel.compilestep.optimization.parallel" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.float.speculation.2030649195" name="Floating-Point Speculation" superClass="intel.compilestep.float.speculation" value="speculation.default" valueType="enumerated"/>
 								<option id="intel.compilestep.diagnostics.sc.level11.1550665574" name="Level Of Source Code Analysis" superClass="intel.compilestep.diagnostics.sc.level11" value="diagnostics.sv.default" valueType="enumerated"/>

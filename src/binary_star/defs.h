@@ -4,7 +4,7 @@
 
 #define GCON 1.0
 #define DIAGNOSTIC_FREQ 1
-#define INX                 8
+#define INX                 12
 #define GRID_DIM            (1.0)
 #define MINMOD_THETA        1.3
 #define PPM

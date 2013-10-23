@@ -284,7 +284,7 @@ void BinaryStar::next_rho(Real Ka, Real phi0a, Real xa, Real Kd, Real phi0d, Rea
 //	printf( "Next rho...\n");
 	_3Vec x, dx, x0a, x0d;
 	Real rho1, rho2;
-	const Real w = 0.1;
+	const Real w = 0.25;
 	const Real n = 1.5;
 	BinaryStar* g;
 	x0a = 0.0;
@@ -371,9 +371,9 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	Real verr;
 	_3Vec O;
 	for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
-		if (check_for_refine())
-			next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
 		if (scf_iter % 25 == 0) {
+			if (check_for_refine())
+				next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
 			get_root()->output("S", 2 * scf_iter, GNX, BW);
 		}
 		if (scf_iter % 50 == 0 && scf_iter != 0) {
@@ -454,7 +454,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
 					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
-		if ((verr < 1.0e-6 && scf_iter >= 10)||(scf_iter>350)) {
+		if ((verr < 1.0e-6 && scf_iter >= 10)||(scf_iter>500)) {
 			break;
 		}
 	}

@@ -284,7 +284,7 @@ void BinaryStar::next_rho(Real Ka, Real phi0a, Real xa, Real Kd, Real phi0d, Rea
 //	printf( "Next rho...\n");
 	_3Vec x, dx, x0a, x0d;
 	Real rho1, rho2;
-	const Real w = 0.25;
+	const Real w = 0.1;
 	const Real n = 1.5;
 	BinaryStar* g;
 	x0a = 0.0;

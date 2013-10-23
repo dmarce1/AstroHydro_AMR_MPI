@@ -359,7 +359,8 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	int maxlev = get_max_level_allowed();
 	set_max_level_allowed(min(maxlev, 7));
 	int cur_lev = min(maxlev, 7);
-
+	cur_lev = maxlev;
+	set_max_level_allowed(cur_lev);
 	shadow_off();
 	setup_grid_structure();
 
@@ -370,11 +371,10 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	Real verr;
 	_3Vec O;
 	for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
-		if (scf_iter % 10 == 0) {
+		if (check_for_refine())
+			next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
+		if (scf_iter % 25 == 0) {
 			get_root()->output("S", 2 * scf_iter, GNX, BW);
-			if (check_for_refine())
-				next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
-			get_root()->output("S", 2 * scf_iter + 1, GNX, BW);
 		}
 		if (scf_iter % 50 == 0 && scf_iter != 0) {
 			if (cur_lev < maxlev) {
@@ -454,7 +454,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
 					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
-		if ((verr < 1.0e-6 && scf_iter >= 10)||(scf_iter>999)) {
+		if ((verr < 1.0e-6 && scf_iter >= 10)||(scf_iter>350)) {
 			break;
 		}
 	}

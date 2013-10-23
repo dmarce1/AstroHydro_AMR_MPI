@@ -41,13 +41,12 @@ static int face_id[26];
 static int face_opp_id[26];
 
 HydroFMMGrid::ifunc_t HydroFMMGrid::cs[FSTAGE + 1] = { &HydroFMMGrid::moments_recv, &HydroFMMGrid::moments_recv_wait, &HydroFMMGrid::moments_send,
-		&HydroFMMGrid::moments_send_wait, &HydroFMMGrid::moments_communicate_all, &HydroFMMGrid::moments_communicate_wait_all, &HydroFMMGrid::expansion_recv,
-		&HydroFMMGrid::compute_interactions, &HydroFMMGrid::expansion_recv_wait, &HydroFMMGrid::expansion_send, &HydroFMMGrid::expansion_send_wait,
-		&HydroFMMGrid::null };
+		&HydroFMMGrid::moments_send_wait, &HydroFMMGrid::moments_communicate_all, &HydroFMMGrid::moments_communicate_wait_all, &HydroFMMGrid::compute_interactions,
+		&HydroFMMGrid::expansion_recv, &HydroFMMGrid::expansion_recv_wait, &HydroFMMGrid::expansion_send, &HydroFMMGrid::expansion_send_wait, &HydroFMMGrid::null };
 
 HydroFMMGrid::ifunc_t HydroFMMGrid::cs_dot[FSTAGE + 1] = { &HydroFMMGrid::moments_recv_dot, &HydroFMMGrid::moments_recv_wait, &HydroFMMGrid::moments_send_dot,
 		&HydroFMMGrid::moments_send_wait_dot, &HydroFMMGrid::moments_communicate_all_dot, &HydroFMMGrid::moments_communicate_wait_all,
-		&HydroFMMGrid::expansion_recv_dot, &HydroFMMGrid::compute_interactions_dot, &HydroFMMGrid::expansion_recv_wait_dot, &HydroFMMGrid::expansion_send_dot,
+		&HydroFMMGrid::compute_interactions_dot, &HydroFMMGrid::expansion_recv_dot, &HydroFMMGrid::expansion_recv_wait_dot, &HydroFMMGrid::expansion_send_dot,
 		&HydroFMMGrid::expansion_send_wait, &HydroFMMGrid::null };
 HydroFMMGrid::ifunc_t HydroFMMGrid::cs_children[5] = { &HydroFMMGrid::_4force_recv, &HydroFMMGrid::_4force_recv_wait, &HydroFMMGrid::_4force_send,
 		&HydroFMMGrid::_4force_send_wait, &HydroFMMGrid::null };
@@ -356,10 +355,10 @@ void HydroFMMGrid::compute_interactions(int) {
 				n1 = poles.ptr(i0, j0, k0);
 				l1 = L.ptr(i0, j0, k0);
 				//  Self potential
-		//		if (n1->is_leaf) {
-		//			const Real factor = (3.0 + 3.0 / sqrt(2.0) + 1.0 / sqrt(3.0)) / 3.0;
-		//			l1->phi() -= factor * n1->M() / get_dx();
-		//		}
+				//		if (n1->is_leaf) {
+				//			const Real factor = (3.0 + 3.0 / sqrt(2.0) + 1.0 / sqrt(3.0)) / 3.0;
+				//			l1->phi() -= factor * n1->M() / get_dx();
+				//		}
 				for (int k = zlb; k <= zub; k++) {
 					for (int j = ylb; j <= yub; j++) {
 						for (int i = xlb; i <= xub; i++) {
@@ -970,7 +969,7 @@ void HydroFMMGrid::compute_update(int dir) {
 bool HydroFMMGrid::check_for_refine() {
 	bool rc;
 	to_conserved_energy();
-	rc = OctNode::check_for_refine();
+	rc = HydroGrid::check_for_refine();
 	if (rc) {
 		pot_to_hydro_grid();
 		HydroGrid::redistribute_grids();
@@ -1043,7 +1042,7 @@ void HydroFMMGrid::update() {
 				for (int i = BW; i < GNX - BW; i++) {
 					g0->U(i, j, k)[State::et_index] += g0->dpot(i, j, k);
 					g0->U(i, j, k) = (g0->U(i, j, k) + g0->D(i, j, k) * _dt) * _beta + g0->U0(i, j, k) * (1.0 - _beta);
-					g0->U(i,j,k).floor(g0->X(i, j, k));
+					g0->U(i, j, k).floor(g0->X(i, j, k));
 				}
 			}
 		}

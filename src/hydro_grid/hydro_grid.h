@@ -8,7 +8,7 @@
 
 #ifdef USE_HYDRO_GRID
 
-#define GRID_CS_SIZE 23
+#define GRID_CS_SIZE 18
 #define GRID_ES_SIZE 7
 
 #ifndef GNX
@@ -24,6 +24,7 @@ private:
 	static _3Vec origin;
 	static bool shadow;
 	static ifunc_t cs[GRID_CS_SIZE];
+	static ifunc_t cs_children[4];
 	static ifunc_t es[GRID_ES_SIZE];
 	static bool initialized;
 	static MPI_Datatype MPI_interior_t;
@@ -115,6 +116,8 @@ protected:
 	static void set_dt(Real);
 	static void set_beta(Real);
 	static void substep_driver();
+	static bool check_for_refine();
+	static void inject_from_children();
 	static void store();
 	static void sum_outflows();
 	virtual void compute_dudt(int);

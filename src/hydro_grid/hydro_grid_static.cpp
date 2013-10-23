@@ -22,12 +22,20 @@ State HydroGrid::DFO = Vector<Real, STATE_NF>(0.0);
 HydroGrid::ifunc_t HydroGrid::es[GRID_ES_SIZE] = { &HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
 		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::max_dt_compute };
 
-HydroGrid::ifunc_t HydroGrid::cs[GRID_CS_SIZE] = {&HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait, &HydroGrid::inject_from_children_send,
-		&HydroGrid::inject_from_children_send_wait,&HydroGrid::sync,&HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
+HydroGrid::ifunc_t HydroGrid::cs[GRID_CS_SIZE] = {&HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
 		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::flux_compute, &HydroGrid::flux_cf_adjust_recv,
 		&HydroGrid::flux_cf_adjust_recv_wait, &HydroGrid::flux_cf_adjust_send, &HydroGrid::flux_cf_adjust_send_wait, &HydroGrid::sync,&HydroGrid::compute_dudt,
 		&HydroGrid::error_from_parent_recv, &HydroGrid::error_from_parent_recv_wait, &HydroGrid::error_from_parent_send, &HydroGrid::error_from_parent_send_wait,
 		&HydroGrid::compute_update };
+
+HydroGrid::ifunc_t HydroGrid::cs_children[4] = {&HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait, &HydroGrid::inject_from_children_send,
+		&HydroGrid::inject_from_children_send_wait };
+
+
+bool HydroGrid::check_for_refine() {
+	inject_from_children();
+	return OctNode::check_for_refine();
+}
 
 void HydroGrid::redistribute_grids() {
 	HydroGrid** send_list;
@@ -249,6 +257,17 @@ void HydroGrid::substep_driver() {
 		DFO[i] = tmp2[i];
 	}
 	FO = (FO + DFO * _dt) * _beta + FO0 * (1.0 - _beta);
+
+}
+
+void HydroGrid::inject_from_children() {
+	DFO = Vector<Real, STATE_NF>(0.0);
+	HydroGrid** list = new HydroGrid*[get_local_node_cnt()];
+	for (int i = 0; i < get_local_node_cnt(); i++) {
+		list[i] = dynamic_cast<HydroGrid*>(get_local_node(i));
+	}
+	run_program(list, get_local_node_cnt(), cs_children, 4, 1);
+	delete[] list;
 
 }
 

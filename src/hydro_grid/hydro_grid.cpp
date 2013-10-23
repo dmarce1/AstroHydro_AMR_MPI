@@ -244,8 +244,7 @@ void HydroGrid::amr_bnd_send(int dir) {
 								cnt++;
 							}
 						}
-					}
-					assert( cnt == sz);
+					} assert( cnt == sz);
 					tag = tag_gen(TAG_FLUX, g->get_id(), f);
 					MPI_Isend(mpi_amr_buffer[2 * dir][amr_cnt[dir]], cnt, MPI_state_t, g->proc(), tag, MPI_COMM_WORLD, &(amr_send_request[dir][amr_cnt[dir]]));
 					amr_cnt[dir]++;
@@ -662,8 +661,7 @@ void HydroGrid::flux_cf_adjust_recv_wait(int dir) {
 								cnt++;
 							}
 						}
-					}
-					assert( cnt == (GNX-2*BW)*(GNX-2*BW)/4);
+					} assert( cnt == (GNX-2*BW)*(GNX-2*BW)/4);
 					delete[] mpi_amr_buffer[f][ci];
 				}
 			}
@@ -725,8 +723,7 @@ void HydroGrid::error_from_parent_send(int dir) {
 							cnt++;
 						}
 					}
-				}
-				assert(cnt==sz);
+				} assert(cnt==sz);
 				tag = tag_gen(TAG_ERROR, child->get_id(), 0);
 				MPI_Isend(mpi_buffer[ci], cnt, MPI_state_t, child->proc(), tag, MPI_COMM_WORLD, send_request + ci);
 			}
@@ -791,8 +788,7 @@ void HydroGrid::error_from_parent_recv_wait(int dir) {
 
 					}
 				}
-			}
-			assert(cnt==(GNX/2-BW)*(GNX/2-BW)*(GNX/2-BW));
+			} assert(cnt==(GNX/2-BW)*(GNX/2-BW)*(GNX/2-BW));
 			delete[] mpi_buffer[0];
 		}
 	} else {
@@ -864,22 +860,22 @@ void HydroGrid::compute_flow_off() {
 						DFO += (Fv[2](i, j, k + 1)) * da;
 					}
 					if (is_phys_bound(XL) && i == BW) {
-						DFO -= State::x_scalar_flux_coeff(x)*(Fs[0](i, j, k)) * da;
+						DFO -= State::x_scalar_flux_coeff(x) * (Fs[0](i, j, k)) * da;
 					}
 					if (is_phys_bound(XU) && i == GNX - BW - 1) {
-						DFO += State::x_scalar_flux_coeff(x)*(Fs[0](i + 1, j, k)) * da;
+						DFO += State::x_scalar_flux_coeff(x) * (Fs[0](i + 1, j, k)) * da;
 					}
 					if (is_phys_bound(YL) && j == BW) {
-						DFO -= State::y_scalar_flux_coeff(x)*(Fs[1](i, j, k)) * da;
+						DFO -= State::y_scalar_flux_coeff(x) * (Fs[1](i, j, k)) * da;
 					}
 					if (is_phys_bound(YU) && j == GNX - BW - 1) {
-						DFO += State::y_scalar_flux_coeff(x)*(Fs[1](i, j + 1, k)) * da;
+						DFO += State::y_scalar_flux_coeff(x) * (Fs[1](i, j + 1, k)) * da;
 					}
 					if (is_phys_bound(ZL) && k == BW) {
-						DFO -= State::z_scalar_flux_coeff(x)*(Fs[2](i, j, k)) * da;
+						DFO -= State::z_scalar_flux_coeff(x) * (Fs[2](i, j, k)) * da;
 					}
 					if (is_phys_bound(ZU) && k == GNX - BW - 1) {
-						DFO += State::z_scalar_flux_coeff(x)*(Fs[2](i, j, k + 1)) * da;
+						DFO += State::z_scalar_flux_coeff(x) * (Fs[2](i, j, k + 1)) * da;
 					}
 				}
 			}
@@ -897,7 +893,7 @@ void HydroGrid::compute_update(int dir) {
 					if (shadow) {
 						E0(i, j, k) = E0(i, j, k) * (1.0 - _beta) + E(i, j, k) * _beta;
 					}
-					U(i, j, k).floor(X(i,j,k));
+					U(i, j, k).floor(X(i, j, k));
 
 				}
 			}

@@ -17,7 +17,7 @@ CPP_DEPS += \
 src/hydro_FMM_grid/%.o: ../src/hydro_FMM_grid/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Compiler '
-	mpic++ -O3 -opt-prefetch=3 -ipo -inline-level=2 -I/home/dmarce1/include -DNDEBUG -ansi-alias -fargument-noalias -fno-alias -fp-speculation=fast -fp-model fast=2 -xHost -Wuninitialized -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
+	mpic++ -O3 -opt-prefetch=3 -ipo -inline-level=2 -I/home/dmarce1/include -DNDEBUG -ansi-alias -fargument-noalias -fno-alias -fp-model strict -xHost -Wuninitialized -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

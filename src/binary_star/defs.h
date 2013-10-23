@@ -13,7 +13,7 @@
 #define GNX 				(INX+2*BW)
 #define PNX 				(INX+2)
 #define TIME_MAX           	(1.0e+99)
-#define OUTPUT_TIME_FREQ   	(1.0e-5)
+#define OUTPUT_TIME_FREQ   	(0.025)
 #define MAXDTINC            (1.25)
 #define GRID_CFL_FACTOR     (1.0/6.0-1.0e-14)
 #define MAXINITDT           (1.0e-2)

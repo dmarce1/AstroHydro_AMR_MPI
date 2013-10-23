@@ -454,7 +454,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
 					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
-		if ((verr < 1.0e-6 && scf_iter >= 10)||(scf_iter>350)) {
+		if ((verr < 1.0e-6 && scf_iter >= 10)||(scf_iter>999)) {
 			break;
 		}
 	}

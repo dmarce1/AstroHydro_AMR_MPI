@@ -81,13 +81,13 @@ Real BinaryStar::virial_error() {
 						_3Vec X = g->X(i, j, k);
 						ek_tot += -(*g)(i, j, k).rot_pot(X) * dv;
 						p_tot += (*g)(i, j, k).pd() * dv;
-	//					w_tot1 += g->get_phi(i, j, k) * (*g)(i, j, k).rho() * 0.5 * dv;
+						//					w_tot1 += g->get_phi(i, j, k) * (*g)(i, j, k).rho() * 0.5 * dv;
 						w_tot2 += g->gx(i, j, k) * g->xc(i) * (*g)(i, j, k).rho() * dv;
 						w_tot2 += g->gy(i, j, k) * g->yc(j) * (*g)(i, j, k).rho() * dv;
 						w_tot2 += g->gz(i, j, k) * g->zc(k) * (*g)(i, j, k).rho() * dv;
-		//				w_tot3 -= g->gz(i, j, k) * g->gz(i, j, k) * 0.5 * dv / (4.0 * M_PI);
-		//				w_tot3 -= g->gy(i, j, k) * g->gy(i, j, k) * 0.5 * dv / (4.0 * M_PI);
-		//				w_tot3 -= g->gx(i, j, k) * g->gx(i, j, k) * 0.5 * dv / (4.0 * M_PI);
+						//				w_tot3 -= g->gz(i, j, k) * g->gz(i, j, k) * 0.5 * dv / (4.0 * M_PI);
+						//				w_tot3 -= g->gy(i, j, k) * g->gy(i, j, k) * 0.5 * dv / (4.0 * M_PI);
+						//				w_tot3 -= g->gx(i, j, k) * g->gx(i, j, k) * 0.5 * dv / (4.0 * M_PI);
 					}
 				}
 			}
@@ -103,8 +103,8 @@ Real BinaryStar::virial_error() {
 //	MPI_Allreduce(&tmp, &w_tot3, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
 	tmp = ek_tot;
 	MPI_Allreduce(&tmp, &ek_tot, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
-/*	printf("%e %e %e %e %e %e %e %e\n", 2.0 * ek_tot, 3.0 * p_tot, w_tot1, w_tot2, w_tot3, (2.0 * ek_tot + 3.0 * p_tot + w_tot1) / w_tot1,
-			(2.0 * ek_tot + 3.0 * p_tot + w_tot2) / w_tot2, (2.0 * ek_tot + 3.0 * p_tot + w_tot3) / w_tot3);*/
+	/*	printf("%e %e %e %e %e %e %e %e\n", 2.0 * ek_tot, 3.0 * p_tot, w_tot1, w_tot2, w_tot3, (2.0 * ek_tot + 3.0 * p_tot + w_tot1) / w_tot1,
+	 (2.0 * ek_tot + 3.0 * p_tot + w_tot2) / w_tot2, (2.0 * ek_tot + 3.0 * p_tot + w_tot3) / w_tot3);*/
 	return (2.0 * ek_tot + 3.0 * p_tot + w_tot2) / w_tot2;
 }
 
@@ -277,14 +277,13 @@ void BinaryStar::find_mass(int frac, Real* mass, Real* com_ptr) {
 	*mass = M;
 }
 
-
 int scf_iter;
 
 void BinaryStar::next_rho(Real Ka, Real phi0a, Real xa, Real Kd, Real phi0d, Real xd, Real l1_x) {
 //	printf( "Next rho...\n");
 	_3Vec x, dx, x0a, x0d;
 	Real rho1, rho2;
-	const Real w = 0.5;
+	const Real w = 0.25;
 	const Real n = 1.5;
 	BinaryStar* g;
 	x0a = 0.0;
@@ -371,10 +370,11 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	Real verr;
 	_3Vec O;
 	for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
-		if (scf_iter % 25 == 0) {
-			if (check_for_refine())
-				next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
-			get_root()->output("S", 2 * scf_iter, GNX, BW);
+		if (scf_iter != 0) {
+			check_for_refine();
+		}
+		if (scf_iter % 10 == 0) {
+			get_root()->output("S", scf_iter/10, GNX, BW);
 		}
 		if (scf_iter % 50 == 0 && scf_iter != 0) {
 			if (cur_lev < maxlev) {
@@ -454,7 +454,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
 					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
-		if ((verr < 1.0e-6 && scf_iter >= 10)||(scf_iter>500)) {
+		if ((verr < 1.0e-6 && scf_iter >= 10) || (scf_iter > 500)) {
 			break;
 		}
 	}
@@ -554,7 +554,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			}
 		}
 	}
-	get_root()->output("S", scf_iter, GNX, BW);
+	get_root()->output("S", scf_iter/10, GNX, BW);
 	FMM_solve();
 	FMM_from_children();
 	get_root()->output("S", scf_iter + 1, GNX, BW);

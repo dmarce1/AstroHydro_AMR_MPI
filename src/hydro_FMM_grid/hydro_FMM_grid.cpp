@@ -969,7 +969,8 @@ void HydroFMMGrid::compute_update(int dir) {
 bool HydroFMMGrid::check_for_refine() {
 	bool rc;
 	to_conserved_energy();
-	rc = HydroGrid::check_for_refine();
+	inject_from_children();
+	rc = OctNode::check_for_refine();
 	if (rc) {
 		pot_to_hydro_grid();
 		HydroGrid::redistribute_grids();

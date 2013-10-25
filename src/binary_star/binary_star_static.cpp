@@ -696,7 +696,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 
 	if (argc == 2) {
 //		scf_code = true;
-		scf_run(argc, argv);
+	//	scf_run(argc, argv);
 		scf_code = false;
 		PhysicalConstants::set_cgs();
 		//		setup_grid_structure();

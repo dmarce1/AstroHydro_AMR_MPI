@@ -51,7 +51,7 @@ void wd(double rho0, double* rptr, double* mptr) {
 	*rptr = r;
 }
 
-double wd_density(double rho0, double r0, double dr) {
+static double wd_density(double rho0, double r0, double dr) {
 	double x, y, r, dx1, dy1, dx2, dy2;
 	int i, imax;
 	x = pow(rho0 / PhysicalConstants::B, 1.0 / 3.0);

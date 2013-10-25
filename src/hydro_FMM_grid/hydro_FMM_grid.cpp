@@ -908,16 +908,13 @@ void HydroFMMGrid::null(int) {
 void HydroFMMGrid::step(Real dt) {
 	Real start_time;
 //	Real beta[1] = { 1.0 };
-	Real beta[2] = { 1.0, 0.5 };
-//	Real beta[3] = { 1.0, 0.25, 2.0 / 3.0 };
+//	Real beta[2] = { 1.0, 0.5 };
+	Real beta[3] = { 1.0, 0.25, 2.0 / 3.0 };
 	HydroGrid::set_dt(dt);
 	store();
 	store_pot();
-	for (int i = 0; i < 2; i++) {
-		if (i == 1) {
-			//	store();
-			//		max_dt_driver();
-		}
+	for (int i = 0; i < 3; i++) {
+
 		HydroGrid::set_beta(beta[i]);
 		start_time = MPI_Wtime();
 		substep_driver();
@@ -932,38 +929,6 @@ void HydroFMMGrid::step(Real dt) {
 
 void HydroFMMGrid::compute_update(int dir) {
 	HydroGrid::inc_instruction_pointer(dir);
-	//HydroGrid::compute_update(dir);
-	/*	if (dir == 0) {
-	 _3Vec x;
-	 Real d;
-	 Vector<Real, STATE_NF> D, D0;
-	 for (int k = BW; k < GNX - BW; k++) {
-	 for (int j = BW; j < GNX - BW; j++) {
-	 for (int i = BW; i < GNX - BW; i++) {
-	 x = HydroGrid::X(i, j, k);
-	 d = (*this)(i, j, k).rho();
-	 D = 0.0;
-	 D0 = get_dudt(i, j, k);
-	 if (State::cylindrical) {
-	 Real R = sqrt(x[0] * x[0] + x[1] * x[1]);
-	 #ifdef USE_FMM
-	 D[State::sy_index] = d * g_lz(i, j, k);
-	 #else
-	 D[State::sy_index] = d * (x[0] * gy(i, j, k) - x[1] * gx(i, j, k));
-	 #endif
-	 D[State::sx_index] = d * (x[0] * gx(i, j, k) + x[1] * gy(i, j, k)) / R;
-	 } else {
-	 D[State::sx_index] = d * gx(i, j, k);
-	 D[State::sy_index] = d * gy(i, j, k);
-	 }
-	 D[State::sz_index] = d * gz(i, j, k);
-	 D[State::et_index] = g_energy(i, j, k) + D0[State::pot_index];
-	 D[State::pot_index] = -D0[State::pot_index];
-	 add_to_dudt(i, j, k, D);
-	 }
-	 }
-	 }
-	 }*/
 }
 
 bool HydroFMMGrid::check_for_refine() {

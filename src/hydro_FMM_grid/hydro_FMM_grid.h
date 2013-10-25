@@ -31,7 +31,6 @@ typedef struct {
 	bool is_leaf;
 } multipole_t;
 
-
 typedef struct {
 	expansion_t phi;
 	expansion_m1_t g_lz;
@@ -41,7 +40,6 @@ typedef struct {
 typedef struct {
 	expansion_t M_dot;
 } multipole_dot_t;
-
 
 typedef struct {
 	expansion_t phi_dot;
@@ -59,7 +57,7 @@ private:
 	Array3d<taylor_dot_t, FNX, FNX, FNX> L_dot;
 	Array3d<taylor_t, FNX, FNX, FNX> L;
 	Array3d<Real, GNX, GNX, GNX> old_pot;
-	Array3d<_3Vec, FNX/2, FNX/2, FNX/2> Xp;
+	Array3d<_3Vec, FNX / 2, FNX / 2, FNX / 2> Xp;
 	Array3d<Real, GNX, GNX, GNX> dpot;
 	Array3d<_4force_t, FNX, FNX, FNX> _4force;
 	static MPI_Datatype MPI_multipole_t;
@@ -82,7 +80,7 @@ private:
 	static ifunc_t cs[FSTAGE + 1];
 	static ifunc_t cs_dot[FSTAGE + 1];
 	static ifunc_t cs_children[5];
-		static MPI_Datatype MPI_comm_child_poles_t[8];
+	static MPI_Datatype MPI_comm_child_poles_t[8];
 	static MPI_Datatype MPI_comm_taylor_t[8];
 	static MPI_Datatype MPI_comm_child_poles_dot_t[8];
 	static MPI_Datatype MPI_comm_taylor_dot_t[8];
@@ -97,15 +95,15 @@ public:
 	static bool solve_on;
 	static Vector<Real, 6> momentum_sum();
 	static Vector<Real, 4> com_sum();
- Array3d<Real, GNX, GNX, GNX> drho_dt;
+	Array3d<Real, GNX, GNX, GNX> drho_dt;
 	Real gx(int i, int j, int k) const;
 #ifdef USE_FMM_ANGULAR
 	Real g_lz(int i, int j, int k) const;
 #endif
 	Real gy(int i, int j, int k) const;
 	Real gz(int i, int j, int k) const;
-	Real g_energy(int i, int j, int k ) const;
-		virtual void compute_update(int dir);
+	Real g_energy(int i, int j, int k) const;
+	virtual void compute_update(int dir);
 	//	virtual void compute_dudt(int dir);
 	static void step(Real dt);
 	Real get_phi(int i, int j, int k) const;
@@ -113,7 +111,7 @@ public:
 	Real get_drho_dt(int i, int j, int k) const;
 	static void FMM_from_children();
 	static void FMM_solve();
-		static void FMM_solve_dot();
+	static void FMM_solve_dot();
 	static void MPI_datatypes_init();
 	virtual void allocate_arrays();
 	virtual void deallocate_arrays();
@@ -122,7 +120,6 @@ public:
 	HydroFMMGrid();
 	virtual ~HydroFMMGrid();
 	void find_neighbors();
-
 
 	void moments_recv(int);
 	void moments_recv_dot(int);
@@ -171,7 +168,14 @@ public:
 								for (int i = FBW; i < FNX - FBW; i++) {
 									if (x >= g->xf(i + BW - FBW) && x < g->xf(i + 1 + BW - FBW)) {
 										if (!g->zone_is_refined(i + BW - FBW, j + BW - FBW, k + BW - FBW)) {
-											p = g->get_phi(i + BW - FBW, j + BW - FBW, k + BW - FBW);
+											//		p = g->get_phi(i + BW - FBW, j + BW - FBW, k + BW - FBW);
+											Real c0 = g->L(i, j, k).phi();
+											Real c1 = g->L(i, j, k).phi(0);
+											Real c2 = g->L(i, j, k).phi(0, 0);
+											Real c3 = g->L(i, j, k).phi(0, 0, 0);
+											Real dx = (x - g->xc(i + BW - FBW));
+											p = c0 + c1 * dx + 0.5 * c2 * dx * dx + (1.0 / 6.0) * c3 * dx * dx * dx;
+
 										}
 									}
 								}

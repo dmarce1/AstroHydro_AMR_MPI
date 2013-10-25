@@ -283,7 +283,7 @@ void BinaryStar::next_rho(Real Ka, Real phi0a, Real xa, Real Kd, Real phi0d, Rea
 //	printf( "Next rho...\n");
 	_3Vec x, dx, x0a, x0d;
 	Real rho1, rho2;
-	const Real w = 0.25;
+	const Real w = 0.333333333333333333333;
 	const Real n = 1.5;
 	BinaryStar* g;
 	x0a = 0.0;
@@ -366,12 +366,12 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	Real phi_min_a, phi_min_d, l1_phi, l1_x, xd, xa, phi0d, phi0a, l1_x0, com_a, com_d, m_a, m_d, xd0, l2_x, R2, phil1, phil2, l2_phi, Omega, Ra, Rd, Rd0, Ax, Bx,
 			Aphi, Bphi, com;
 	Real d2 = 0.05;
-	Real ff = 2.0;
+	Real ff = 5.0;
 	Real verr;
 	_3Vec O;
 	for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
 		if (scf_iter % 10 == 0) {
-			get_root()->output("S", scf_iter/10, GNX, BW);
+			get_root()->output("S", scf_iter / 10, GNX, BW);
 			check_for_refine();
 		}
 		if (scf_iter % 50 == 0 && scf_iter != 0) {
@@ -392,7 +392,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		find_mass(0, &m_a, &com_a);
 		find_mass(1, &m_d, &com_d);
 		find_l(com_a, com_d, &l1_phi, &l1_x, 1);
-		phi0d = l1_phi * 0.99 + 0.01 * phi_min_d;
+		phi0d = 0.95*l1_phi+0.05*phi_min_d;
 		if (scf_iter == 0) {
 			find_l(com_a, com_d, &l2_phi, &l2_x, 2);
 			l1_x0 = l1_x;
@@ -419,21 +419,24 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		s *= 1.0 / sqrt(B * G);
 		cm *= 1.0 / B * sqrt(A / G);
 #endif
-		ff *= pow(Ka / Kd, 1.0 / 20.0);
+		ff *= pow(Ka / Kd, 1.0 / 10.0);
 		ff = max(1.0, ff);
 		//	ff = 1.5;
 		//	phi0a = min(phi0d, l1_phi);
 		Ra /= 2.0;
 		Rd /= 2.0;
+		Real l1_x0;
 		if (scf_iter == 0) {
 			Rd0 = Rd;
+			l1_x0 = l1_x;
 		}
-		Ax = l1_x - 2.0 * Rd0;
+		Ax = l1_x - (2.0*Rd);
+		Rd /= Rd0;
 		Bx = l1_x;
 		Aphi = get_phi_at(Ax, 0.0, 0.0);
 		Bphi = get_phi_at(Bx, 0.0, 0.0);
 		Omega = sqrt((Aphi - Bphi) / (0.5 * (Ax * Ax - Bx * Bx)));
-		State::set_omega(Omega * 0.5 + State::get_omega() * 0.5);
+		State::set_omega(0.25 * Omega + 0.75 * State::get_omega());
 		next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
 		verr = fabs(virial_error());
 #ifdef ZTWD
@@ -452,7 +455,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
 					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
 		}
-		if ((verr < 1.0e-6 && scf_iter >= 10) || (scf_iter > 500)) {
+		if ((verr < 1.0e-6 && scf_iter >= 10) || (scf_iter > 250)) {
 			break;
 		}
 	}
@@ -554,7 +557,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	}
 	FMM_solve();
 	FMM_from_children();
-	get_root()->output("S", scf_iter/10, GNX, BW);
+	get_root()->output("S", scf_iter / 10, GNX, BW);
 }
 
 void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {
@@ -634,10 +637,10 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 void BinaryStar::run(int argc, char* argv[]) {
 //	State::turn_off_total_energy();
 
-	if (scf_code) {
+/*	if (scf_code) {
 		scf_run(argc, argv);
 		return;
-	}
+	}*/
 #ifndef USE_FMM
 	set_poisson_tolerance(1.0e-8);
 #endif
@@ -650,10 +653,11 @@ void BinaryStar::run(int argc, char* argv[]) {
 	int nnodes;
 
 	if (argc == 2) {
-		scf_code = true;
-		scf_run(argc, argv);
+//		scf_code = true;
+//		scf_run(argc, argv);
 		scf_code = false;
-//		setup_grid_structure();
+		PhysicalConstants::set_cgs();
+		setup_grid_structure();
 	} else {
 		read_from_file(argv[2], &step_cnt, &ostep_cnt);
 	}
@@ -1055,7 +1059,17 @@ void BinaryStar::find_l(Real m1_x, Real m2_x, Real* l1_phi, Real* l1_x, int lnum
 					if (test) {
 						if ((*g)(i, j, k).phi_eff() > phi_max) {
 							phi_max = (*g)(i, j, k).phi_eff();
-							x_max = x;
+							Real dp = (*g)(i + 1, j, k).phi_eff() - (*g)(i, j, k).phi_eff();
+							Real dm = (*g)(i, j, k).phi_eff() - (*g)(i - 1, j, k).phi_eff();
+							if (dp * dm <= 0.0) {
+								Real c0 = (*g)(i, j, k).phi_eff();
+								Real c1 = (dp + dm) * 0.5;
+								Real c2 = (dp - dm);
+								Real dx = -c1 / c2;
+								Real phi0 = c0 - 0.5 * (c1 * c1) / c2;
+								phi_max = phi0;
+								x_max = x + dx * g->get_dx();
+							}
 						}
 					}
 				}

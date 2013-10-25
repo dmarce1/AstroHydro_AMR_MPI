@@ -1,6 +1,8 @@
 #include "../single_star/lane_emden.h"
 #include "binary_star.h"
 
+#include "dwd.h"
+
 #ifdef HYDRO_GRAV_GRID
 #ifdef BINARY_STAR
 
@@ -158,86 +160,132 @@ void BinaryStar::set_refine_flags() {
  }
  }
  */
-void BinaryStar::initialize() {
-	Real K, E1, E2, period, rho_c1, rho_c2;
-	a0 = d0 = 0.0;
-	if (scf_code) {
-		const Real a = 0.05;
-		const Real R2 = 0.005;
-		const Real n = 1.5;
-		rho_c2 = q_ratio * M1 * (pow(3.65375 / R2, 3.0) / (2.71406 * 4.0 * M_PI));
-		rho_c1 = rho_c2 / pow(q_ratio, 2.0 * n / (3.0 - n));
 
-		a0[0] = a * q_ratio / (q_ratio + 1.0);
-		d0[0] = -a / (q_ratio + 1.0);
-		K = pow(R2 / 3.65375, 2) * 4.0 * M_PI / (2.5) * pow(rho_c2, 1.0 / 3.0);
-		Ka = Kd = (5.0 / 8.0) * K;
-		polyK = K;
-		E1 = 1.0 / (sqrt((4.0 * M_PI * pow(rho_c1, 1.0 - 1.0 / n)) / ((n + 1.0) * K)));
-		E2 = 1.0 / (sqrt((4.0 * M_PI * pow(rho_c2, 1.0 - 1.0 / n)) / ((n + 1.0) * K)));
-		//	printf("%e %e %e %e\n", rho_c1, rho_c2, E1, E2);
-		period = sqrt(pow(a, 3) / (q_ratio + 1.0) / M1) * 2.0 * M_PI;
-	} else {
-		rho_c1 = rho_c2 = 1.0;
-		a0[0] = 0.025;
-		d0[0] = -0.025;
-		E1 = E2 = 0.0015;
-		K = pow(E1, 2) * 4.0 * M_PI / (2.5);
-		period = sqrt(pow((a0 - d0).mag(), 3) / 2.303394e-07) * 2.0 * M_PI;
+binary_parameters_t bparam;
+static bool bparam_init = false;
+
+void BinaryStar::initialize() {
+	if (!bparam_init) {
+		bparam_init = true;
+		bparam.m1 = 1.04;
+		bparam.m2 = 0.20;
+		bparam.fill_factor = 1.0;
+		binary_parameters_compute(&bparam);
+		dynamic_cast<HydroGrid*>(get_root())->HydroGrid::mult_dx(bparam.a * 5.0);
+		State::set_omega(bparam.omega);
+		if (MPI_rank() == 0) {
+			printf("period     = %e\n", bparam.P);
+			printf("omega      = %e\n", bparam.omega);
+			printf("separation = %e\n", bparam.a);
+		}
 	}
-	State U;
-	Real d, e, gamma, tau;
-	gamma = 5.0 / 3.0;
-	Real ra, rd, r0, ek;
-	_3Vec v;
-	const Real Omega = 2.0 * M_PI / period;
-	State::set_omega(Omega);
-	Real f1, f2;
-	if (get_level() == 0) {
-		printf("Period = %e Omega = %e\n", period, Omega);
-	}
-	Real d_floor = 10.0 * State::rho_floor;
 	for (int k = BW - 1; k < GNX - BW + 1; k++) {
 		for (int j = BW - 1; j < GNX - BW + 1; j++) {
 			for (int i = BW - 1; i < GNX - BW + 1; i++) {
-				U = Vector<Real, STATE_NF>(0.0);
-				ra = (X(i, j, k) - a0).mag();
-				rd = (X(i, j, k) - d0).mag();
-				d = +rho_c1 * pow(lane_emden(ra / E1), 1.5);
-				d += rho_c2 * pow(lane_emden(rd / E2), 1.5);
-				d = max(d, d_floor);
-				if (ra < rd) {
-					f1 = d - d_floor / 2.0;
-					f2 = d_floor / 2.0;
-				} else {
-					f2 = d - d_floor / 2.0;
-					f1 = d_floor / 2.0;
-				}
-				if (State::cylindrical) {
-					Real R2 = (HydroGrid::xc(i) * HydroGrid::xc(i) + HydroGrid::yc(j) * HydroGrid::yc(j));
-					v[0] = 0.0;
-					v[1] = R2 * State::get_omega();
-				} else {
-					v[0] = -HydroGrid::yc(j) * State::get_omega();
-					v[1] = +HydroGrid::xc(i) * State::get_omega();
-
-				}
-				v[2] = 0.0;
-				e = K * pow(d, gamma) / (gamma - 1.0);
-				tau = pow(e, 1.0 / gamma);
-				U.set_rho(d);
-				U.set_frac(0, f1);
-				U.set_frac(1, f2);
-				U.set_et(e);
+				int id;
+				State U = Vector<Real, STATE_NF>(0.0);
+				Real R2 = (xc(i)*xc(i)+yc(j)*yc(j));
+				Real rho = density_at(&bparam, xc(i), yc(j), zc(k), &id);
+				rho = max( rho, State::rho_floor );
+				Real tau = pow( State::ei_floor, 1.0/State::gamma);
+				U.set_rho(rho);
+				U.set_et(U.ed());
 				U.set_tau(tau);
-				U.set_sx(d * v[0]);
-				U.set_sy(d * v[1]);
-				U.set_sz(d * v[2]);
+				U.set_sx(0.0);
+				U.set_sy(bparam.omega*R2*U.rho());
+				U.set_sz(0.0);
+				if (id == 1) {
+					U.set_frac(0, U.rho());
+					U.set_frac(1, 0.0);
+				} else if (id == -1) {
+					U.set_frac(1, U.rho());
+					U.set_frac(0, 0.0);
+				} else {
+					U.set_frac(1, 0.0);
+					U.set_frac(0, 0.0);
+				}
 				(*this)(i, j, k) = U;
 			}
 		}
-	}
+	} /*Real K, E1, E2, period, rho_c1, rho_c2;
+	 a0 = d0 = 0.0;
+	 if (scf_code) {
+	 const Real a = 0.075;
+	 const Real R2 = 0.0075;
+	 const Real n = 1.5;
+	 rho_c2 = q_ratio * M1 * (pow(3.65375 / R2, 3.0) / (2.71406 * 4.0 * M_PI));
+	 rho_c1 = rho_c2 / pow(q_ratio, 2.0 * n / (3.0 - n));
 
+	 a0[0] = a * q_ratio / (q_ratio + 1.0);
+	 d0[0] = -a / (q_ratio + 1.0);
+	 K = pow(R2 / 3.65375, 2) * 4.0 * M_PI / (2.5) * pow(rho_c2, 1.0 / 3.0);
+	 Ka = Kd = (5.0 / 8.0) * K;
+	 polyK = K;
+	 E1 = 1.0 / (sqrt((4.0 * M_PI * pow(rho_c1, 1.0 - 1.0 / n)) / ((n + 1.0) * K)));
+	 E2 = 1.0 / (sqrt((4.0 * M_PI * pow(rho_c2, 1.0 - 1.0 / n)) / ((n + 1.0) * K)));
+	 //	printf("%e %e %e %e\n", rho_c1, rho_c2, E1, E2);
+	 period = sqrt(pow(a, 3) / (q_ratio + 1.0) / M1) * 2.0 * M_PI;
+	 } else {
+	 rho_c1 = rho_c2 = 1.0;
+	 a0[0] = 0.025;
+	 d0[0] = -0.025;
+	 E1 = E2 = 0.0015;
+	 K = pow(E1, 2) * 4.0 * M_PI / (2.5);
+	 period = sqrt(pow((a0 - d0).mag(), 3) / 2.303394e-07) * 2.0 * M_PI;
+	 }
+	 State U;
+	 Real d, e, gamma, tau;
+	 gamma = 5.0 / 3.0;
+	 Real ra, rd, r0, ek;
+	 _3Vec v;
+	 const Real Omega = 2.0 * M_PI / period;
+	 State::set_omega(Omega);
+	 Real f1, f2;
+	 if (get_level() == 0) {
+	 printf("Period = %e Omega = %e\n", period, Omega);
+	 }
+	 Real d_floor = 10.0 * State::rho_floor;
+	 for (int k = BW - 1; k < GNX - BW + 1; k++) {
+	 for (int j = BW - 1; j < GNX - BW + 1; j++) {
+	 for (int i = BW - 1; i < GNX - BW + 1; i++) {
+	 U = Vector<Real, STATE_NF>(0.0);
+	 ra = (X(i, j, k) - a0).mag();
+	 rd = (X(i, j, k) - d0).mag();
+	 d = +rho_c1 * pow(lane_emden(ra / E1), 1.5);
+	 d += rho_c2 * pow(lane_emden(rd / E2), 1.5);
+	 d = max(d, d_floor);
+	 if (ra < rd) {
+	 f1 = d - d_floor / 2.0;
+	 f2 = d_floor / 2.0;
+	 } else {
+	 f2 = d - d_floor / 2.0;
+	 f1 = d_floor / 2.0;
+	 }
+	 if (State::cylindrical) {
+	 Real R2 = (HydroGrid::xc(i) * HydroGrid::xc(i) + HydroGrid::yc(j) * HydroGrid::yc(j));
+	 v[0] = 0.0;
+	 v[1] = R2 * State::get_omega();
+	 } else {
+	 v[0] = -HydroGrid::yc(j) * State::get_omega();
+	 v[1] = +HydroGrid::xc(i) * State::get_omega();
+
+	 }
+	 v[2] = 0.0;
+	 e = K * pow(d, gamma) / (gamma - 1.0);
+	 tau = pow(e, 1.0 / gamma);
+	 U.set_rho(d);
+	 U.set_frac(0, f1);
+	 U.set_frac(1, f2);
+	 U.set_et(e);
+	 U.set_tau(tau);
+	 U.set_sx(d * v[0]);
+	 U.set_sy(d * v[1]);
+	 U.set_sz(d * v[2]);
+	 (*this)(i, j, k) = U;
+	 }
+	 }
+	 }
+	 */
 }
 
 #endif

@@ -13,10 +13,10 @@
 #define GNX 				(INX+2*BW)
 #define PNX 				(INX+2)
 #define TIME_MAX           	(1.0e+99)
-#define OUTPUT_TIME_FREQ   	(0.025)
+#define OUTPUT_TIME_FREQ   	(0.025/100.0)
 #define MAXDTINC            (1.25)
 #define GRID_CFL_FACTOR     (1.0/3.0)
-#define MAXINITDT           (1.0e-4)
+#define MAXINITDT           (1.0e-5)
 #define ZTWD
 #define DRIVING			    0.01
 #define DRIVING_TIME		0.0

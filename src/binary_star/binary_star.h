@@ -110,7 +110,9 @@ public:
 		case 10:
 			return gz(i, j, k);
 		case 11:
-			return (*this)(i, j, k).pg(this->X(i,j,k));
+			return (*this)(i, j, k).pg(this->X(i, j, k));
+		case 12:
+			return (*this)(i, j, k).ei(this->X(i, j, k)) + (*this)(i, j, k).ed();
 		}
 #endif
 		assert(false);
@@ -142,12 +144,13 @@ public:
 			return "gz";
 		case 11:
 			return "p";
-		}
-		assert(false);
+		case 12:
+			return "e_gas";
+		} assert(false);
 		return "";
 	}
 	virtual int nvar_output() const {
-		return 12;
+		return 13;
 	}
 };
 #endif

@@ -355,209 +355,251 @@ void BinaryStar::next_rho(Real Ka, Real phi0a, Real xa, Real Kd, Real phi0d, Rea
 
 }
 void BinaryStar::scf_run(int argc, char* argv[]) {
-	int maxlev = get_max_level_allowed();
-	set_max_level_allowed(min(maxlev, 7));
-	int cur_lev = min(maxlev, 7);
-	cur_lev = maxlev;
-	set_max_level_allowed(cur_lev);
-	shadow_off();
 	setup_grid_structure();
+	get_root()->output("S", 0, GNX, BW);
+	max_dt_driver();
+	const Real A = PhysicalConstants::A;
+	const Real B = PhysicalConstants::B;
 
-	Real phi_min_a, phi_min_d, l1_phi, l1_x, xd, xa, phi0d, phi0a, l1_x0, com_a, com_d, m_a, m_d, xd0, l2_x, R2, phil1, phil2, l2_phi, Omega, Ra, Rd, Rd0, Ax, Bx,
-			Aphi, Bphi, com;
-	Real d2 = 0.05;
-	Real ff = 5.0;
-	Real verr;
-	_3Vec O;
-	for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
-		if (scf_iter % 10 == 0) {
-			get_root()->output("S", scf_iter / 10, GNX, BW);
-			check_for_refine();
-		}
-		if (scf_iter % 50 == 0 && scf_iter != 0) {
-			if (cur_lev < maxlev) {
-				cur_lev++;
-			}
-			set_max_level_allowed(cur_lev);
-		}
-		//	set_poisson_tolerance(1.0e-10);
-#ifdef USE_FMM
-		FMM_solve();
-		FMM_from_children();
-		max_dt_driver();
-#else
-		solve_poisson();
-#endif
-		find_phimins(&phi_min_a, &xa, &phi_min_d, &xd);
-		find_mass(0, &m_a, &com_a);
-		find_mass(1, &m_d, &com_d);
-		find_l(com_a, com_d, &l1_phi, &l1_x, 1);
-		phi0d = 0.95*l1_phi+0.05*phi_min_d;
-		if (scf_iter == 0) {
-			find_l(com_a, com_d, &l2_phi, &l2_x, 2);
-			l1_x0 = l1_x;
-			xd0 = com_d;
-		}
-		//	phi0a = phi_min_a * 0.5 + 0.5 * l1_phi;
-		phi0a = ff * l1_phi;
-		com = (com_a * m_a + com_d * m_d) / (m_a + m_d);
-		O = get_origin();
-		O[0] += 1.5 * com;
-		set_origin(O);
-		Ka = find_K(0, phi0a, xa, l1_x, &Ra);
-		Kd = find_K(1, phi0d, xd, l1_x, &Rd);
-		PhysicalConstants::A = Kd;
-#ifdef ZTWD
-		const Real A = 6.0023e+22;
-		const Real B = 2.0 * 9.7393e+5;
-		const Real G = 6.6745e-8;
-		Real g, cm, s;
-		g = pow(Kd, -1.5);
-		cm = pow(Kd, -0.5);
-		s = 1.0;
-		g *= pow(A / G, 1.5) / B / B;
-		s *= 1.0 / sqrt(B * G);
-		cm *= 1.0 / B * sqrt(A / G);
-#endif
-		ff *= pow(Ka / Kd, 1.0 / 10.0);
-		ff = max(1.0, ff);
-		//	ff = 1.5;
-		//	phi0a = min(phi0d, l1_phi);
-		Ra /= 2.0;
-		Rd /= 2.0;
-		Real l1_x0;
-		if (scf_iter == 0) {
-			Rd0 = Rd;
-			l1_x0 = l1_x;
-		}
-		Ax = l1_x - (2.0*Rd);
-		Rd /= Rd0;
-		Bx = l1_x;
-		Aphi = get_phi_at(Ax, 0.0, 0.0);
-		Bphi = get_phi_at(Bx, 0.0, 0.0);
-		Omega = sqrt((Aphi - Bphi) / (0.5 * (Ax * Ax - Bx * Bx)));
-		State::set_omega(0.25 * Omega + 0.75 * State::get_omega());
-		next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
-		verr = fabs(virial_error());
-#ifdef ZTWD
-		m_a *= g;
-		m_d *= g;
-		m_a /= 1.9891e+33;
-		m_d /= 1.9891e+33;
-		M1 *= pow(MA / m_a, 1.0 / 10.0);
-		M2 *= pow(MD / m_d, 1.0 / 10.0);
-#endif
-		if (MPI_rank() == 0) {
-			if (scf_iter % 25 == 0) {
-				printf("\n   %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s \n", "g", "cm", "s", "Ma", "Ka", "phi0a",
-						"xa", "Md", "Kd", "phi0d", "xd", "Omega", "l1_x", "Rd", "Ra", "com", "virial", "ff", "err");
-			}
-			printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
-					m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
-		}
-		if ((verr < 1.0e-6 && scf_iter >= 10) || (scf_iter > 250)) {
-			break;
-		}
-	}
-	assign_fracs(0.708333, phi_min_a, phi0a);
-	const Real n = 1.5;
-	BinaryStar* gg;
-	PhysicalConstants::A = Kd;
-	const Real A = 6.0023e+22;
-	const Real B = 2.0 * 9.7393e+5;
-	const Real G = 6.6745e-8;
-	Real g = pow(Kd, -1.5);
-	Real cm = pow(Kd, -0.5);
-	Real s = 1.0;
-	g *= pow(A / G, 1.5) / B / B;
-	s *= 1.0 / sqrt(B * G);
-	cm *= 1.0 / B * sqrt(A / G);
-	Real cm3 = cm * cm * cm;
-	Real erg = g * cm * cm / s / s;
-	for (int l = 0; l < get_local_node_cnt(); l++) {
-		gg = dynamic_cast<BinaryStar*>(get_local_node(l));
-		for (int k = BW; k < GNX - BW; k++) {
-			for (int j = BW; j < GNX - BW; j++) {
-				for (int i = BW; i < GNX - BW; i++) {
-					Real e, sr, lz, sz, K, d, O, tau, sx, sy, f1, f2;
-					O = State::get_omega();
-					_3Vec x = gg->X(i, j, k);
-					d = (*gg)(i, j, k).rho();
-					lz = (x[0] * x[0] + x[1] * x[1]) * d * O;
-					sr = 0.0;
-					tau = pow(State::ei_floor, 1.0 / State::gamma);
-					sx = -x[1] * d * O;
-					sy = +x[0] * d * O;
-					sz = 0.0;
-					f1 = (*gg)(i, j, k).frac(0);
-					f2 = (*gg)(i, j, k).frac(1);
-					e = (*gg)(i, j, k).ed() + State::ei_floor;
-					d *= g / cm3;
-					f1 *= g / cm3;
-					f2 *= g / cm3;
-					sx *= (g * cm / s) / cm3;
-					sy *= (g * cm / s) / cm3;
-					sr *= (g * cm / s) / cm3;
-					sz *= (g * cm / s) / cm3;
-					lz *= (g * cm * cm / s) / cm3;
-					e *= erg / cm3;
-					(*gg)(i, j, k).set_rho(d);
-					(*gg)(i, j, k).set_frac(0, f1);
-					(*gg)(i, j, k).set_frac(1, f2);
-					(*gg)(i, j, k).set_tau(tau);
-					if (State::cylindrical) {
-						(*gg)(i, j, k).set_sx(sr);
-						(*gg)(i, j, k).set_sy(lz);
-					} else {
-						(*gg)(i, j, k).set_sx(sx);
-						(*gg)(i, j, k).set_sy(sy);
-					}
-					(*gg)(i, j, k).set_sz(sz);
-					(*gg)(i, j, k).set_et(e);
-				}
-			}
-		}
-	}
-
-	State::ei_floor *= erg / cm3;
-	PhysicalConstants::set_cgs();
-	State::rho_floor = 0.0;
-	Real tmp = refine_floor;
-	refine_floor = 0.0;
-	for (int l = 0; l < get_local_node_cnt(); l++) {
-		gg = dynamic_cast<BinaryStar*>(get_local_node(l));
-		for (int k = BW; k < GNX - BW; k++) {
-			for (int j = BW; j < GNX - BW; j++) {
-				for (int i = BW; i < GNX - BW; i++) {
-					State::rho_floor = max(State::rho_floor, 1.0e-14 * (*gg)(i, j, k).rho());
-					refine_floor = max(refine_floor, tmp * (*gg)(i, j, k).rho());
-				}
-			}
-		}
-	}
-
-	tmp = State::rho_floor;
-	MPI_Allreduce(&tmp, &State::rho_floor, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD );
-	tmp = refine_floor;
-	MPI_Allreduce(&tmp, &refine_floor, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD );
-	State::set_omega(State::get_omega() / s);
-	dynamic_cast<HydroGrid*>(get_root())->HydroGrid::mult_dx(cm);
-#ifndef USE_FMM
-	dynamic_cast<MultiGrid*>(get_root())->MultiGrid::mult_dx(cm);
-#endif
-	for (int l = 0; l < get_local_node_cnt(); l++) {
-		gg = dynamic_cast<BinaryStar*>(get_local_node(l));
-		for (int k = BW; k < GNX - BW; k++) {
-			for (int j = BW; j < GNX - BW; j++) {
-				for (int i = BW; i < GNX - BW; i++) {
-					(*gg)(i, j, k).floor(gg->HydroGrid::X(i, j, k));
-				}
-			}
-		}
-	}
 	FMM_solve();
 	FMM_from_children();
-	get_root()->output("S", scf_iter / 10, GNX, BW);
+	max_dt_driver();
+
+	for (int i = 0; i < get_local_node_cnt(); i++) {
+		BinaryStar* g = dynamic_cast<BinaryStar*>(get_local_node(i));
+		for (int k = BW - 1; k < GNX - BW + 1; k++) {
+			for (int j = BW - 1; j < GNX - BW + 1; j++) {
+				for (int i = BW - 1; i < GNX - BW + 1; i++) {
+					Real d2_phi_eff = 0.0;
+					d2_phi_eff += (*g)(i + 1, j, k).phi_eff();
+					d2_phi_eff += (*g)(i - 1, j, k).phi_eff();
+					d2_phi_eff += (*g)(i, j - 1, k).phi_eff();
+					d2_phi_eff += (*g)(i, j + 1, k).phi_eff();
+					d2_phi_eff += (*g)(i, j, k - 1).phi_eff();
+					d2_phi_eff += (*g)(i, j, k + 1).phi_eff();
+					d2_phi_eff -= 6.0 * (*g)(i, j, k).phi_eff();
+					Real d2_hd = 0.0;
+					d2_hd += (*g)(i + 1, j, k).hd();
+					d2_hd += (*g)(i - 1, j, k).hd();
+					d2_hd += (*g)(i, j - 1, k).hd();
+					d2_hd += (*g)(i, j + 1, k).hd();
+					d2_hd += (*g)(i, j, k - 1).hd();
+					d2_hd += (*g)(i, j, k + 1).hd();
+					d2_hd -= 6.0 * (*g)(i, j, k).hd();
+					(*g)(i,j,k)[State::d_index] += d2_hd + d2_phi_eff;
+				}
+			}
+		}
+	}
+
+	FMM_solve();
+	FMM_from_children();
+	max_dt_driver();
+	get_root()->output("S", 1, GNX, BW);
+
+	/*	int maxlev = get_max_level_allowed();
+	 set_max_level_allowed(min(maxlev, 7));
+	 int cur_lev = min(maxlev, 7);
+	 cur_lev = maxlev;
+	 set_max_level_allowed(cur_lev);
+	 shadow_off();
+	 setup_grid_structure();
+
+	 Real phi_min_a, phi_min_d, l1_phi, l1_x, xd, xa, phi0d, phi0a, l1_x0, com_a, com_d, m_a, m_d, xd0, l2_x, R2, phil1, phil2, l2_phi, Omega, Ra, Rd, Rd0, Ax, Bx,
+	 Aphi, Bphi, com;
+	 Real d2 = 0.05;
+	 Real ff = 5.0;
+	 Real verr;
+	 _3Vec O;
+	 for (scf_iter = 0; scf_iter < 1000; scf_iter++) {
+	 if (scf_iter % 10 == 0) {
+	 get_root()->output("S", scf_iter / 10, GNX, BW);
+	 check_for_refine();
+	 }
+	 if (scf_iter % 50 == 0 && scf_iter != 0) {
+	 if (cur_lev < maxlev) {
+	 cur_lev++;
+	 }
+	 set_max_level_allowed(cur_lev);
+	 }
+	 //	set_poisson_tolerance(1.0e-10);
+	 #ifdef USE_FMM
+	 FMM_solve();
+	 FMM_from_children();
+	 max_dt_driver();
+	 #else
+	 solve_poisson();
+	 #endif
+	 find_phimins(&phi_min_a, &xa, &phi_min_d, &xd);
+	 find_mass(0, &m_a, &com_a);
+	 find_mass(1, &m_d, &com_d);
+	 find_l(com_a, com_d, &l1_phi, &l1_x, 1);
+	 phi0d = 0.95*l1_phi+0.05*phi_min_d;
+	 if (scf_iter == 0) {
+	 find_l(com_a, com_d, &l2_phi, &l2_x, 2);
+	 l1_x0 = l1_x;
+	 xd0 = com_d;
+	 }
+	 //	phi0a = phi_min_a * 0.5 + 0.5 * l1_phi;
+	 phi0a = ff * l1_phi;
+	 com = (com_a * m_a + com_d * m_d) / (m_a + m_d);
+	 O = get_origin();
+	 O[0] += 1.5 * com;
+	 set_origin(O);
+	 Ka = find_K(0, phi0a, xa, l1_x, &Ra);
+	 Kd = find_K(1, phi0d, xd, l1_x, &Rd);
+	 PhysicalConstants::A = Kd;
+	 #ifdef ZTWD
+	 const Real A = 6.0023e+22;
+	 const Real B = 2.0 * 9.7393e+5;
+	 const Real G = 6.6745e-8;
+	 Real g, cm, s;
+	 g = pow(Kd, -1.5);
+	 cm = pow(Kd, -0.5);
+	 s = 1.0;
+	 g *= pow(A / G, 1.5) / B / B;
+	 s *= 1.0 / sqrt(B * G);
+	 cm *= 1.0 / B * sqrt(A / G);
+	 #endif
+	 ff *= pow(Ka / Kd, 1.0 / 10.0);
+	 ff = max(1.0, ff);
+	 //	ff = 1.5;
+	 //	phi0a = min(phi0d, l1_phi);
+	 Ra /= 2.0;
+	 Rd /= 2.0;
+	 Real l1_x0;
+	 if (scf_iter == 0) {
+	 Rd0 = Rd;
+	 l1_x0 = l1_x;
+	 }
+	 Ax = l1_x - (2.0*Rd);
+	 Rd /= Rd0;
+	 Bx = l1_x;
+	 Aphi = get_phi_at(Ax, 0.0, 0.0);
+	 Bphi = get_phi_at(Bx, 0.0, 0.0);
+	 Omega = sqrt((Aphi - Bphi) / (0.5 * (Ax * Ax - Bx * Bx)));
+	 State::set_omega(0.25 * Omega + 0.75 * State::get_omega());
+	 next_rho(Ka, phi0a, xa, Kd, phi0d, xd, l1_x);
+	 verr = fabs(virial_error());
+	 #ifdef ZTWD
+	 m_a *= g;
+	 m_d *= g;
+	 m_a /= 1.9891e+33;
+	 m_d /= 1.9891e+33;
+	 M1 *= pow(MA / m_a, 1.0 / 10.0);
+	 M2 *= pow(MD / m_d, 1.0 / 10.0);
+	 #endif
+	 if (MPI_rank() == 0) {
+	 if (scf_iter % 25 == 0) {
+	 printf("\n   %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s %12s \n", "g", "cm", "s", "Ma", "Ka", "phi0a",
+	 "xa", "Md", "Kd", "phi0d", "xd", "Omega", "l1_x", "Rd", "Ra", "com", "virial", "ff", "err");
+	 }
+	 printf("%i %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e %12e \n", scf_iter, g, cm, s, m_a, Ka, phi0a, com_a,
+	 m_d, Kd, phi0d, com_d, Omega, l1_x, Rd, Ra, com, verr, ff, fabs(log(Ka / Kd)));
+	 }
+	 if ((verr < 1.0e-6 && scf_iter >= 10) || (scf_iter > 250)) {
+	 break;
+	 }
+	 }
+	 assign_fracs(0.708333, phi_min_a, phi0a);
+	 const Real n = 1.5;
+	 BinaryStar* gg;
+	 PhysicalConstants::A = Kd;
+	 const Real A = 6.0023e+22;
+	 const Real B = 2.0 * 9.7393e+5;
+	 const Real G = 6.6745e-8;
+	 Real g = pow(Kd, -1.5);
+	 Real cm = pow(Kd, -0.5);
+	 Real s = 1.0;
+	 g *= pow(A / G, 1.5) / B / B;
+	 s *= 1.0 / sqrt(B * G);
+	 cm *= 1.0 / B * sqrt(A / G);
+	 Real cm3 = cm * cm * cm;
+	 Real erg = g * cm * cm / s / s;
+	 for (int l = 0; l < get_local_node_cnt(); l++) {
+	 gg = dynamic_cast<BinaryStar*>(get_local_node(l));
+	 for (int k = BW; k < GNX - BW; k++) {
+	 for (int j = BW; j < GNX - BW; j++) {
+	 for (int i = BW; i < GNX - BW; i++) {
+	 Real e, sr, lz, sz, K, d, O, tau, sx, sy, f1, f2;
+	 O = State::get_omega();
+	 _3Vec x = gg->X(i, j, k);
+	 d = (*gg)(i, j, k).rho();
+	 lz = (x[0] * x[0] + x[1] * x[1]) * d * O;
+	 sr = 0.0;
+	 tau = pow(State::ei_floor, 1.0 / State::gamma);
+	 sx = -x[1] * d * O;
+	 sy = +x[0] * d * O;
+	 sz = 0.0;
+	 f1 = (*gg)(i, j, k).frac(0);
+	 f2 = (*gg)(i, j, k).frac(1);
+	 e = (*gg)(i, j, k).ed() + State::ei_floor;
+	 d *= g / cm3;
+	 f1 *= g / cm3;
+	 f2 *= g / cm3;
+	 sx *= (g * cm / s) / cm3;
+	 sy *= (g * cm / s) / cm3;
+	 sr *= (g * cm / s) / cm3;
+	 sz *= (g * cm / s) / cm3;
+	 lz *= (g * cm * cm / s) / cm3;
+	 e *= erg / cm3;
+	 (*gg)(i, j, k).set_rho(d);
+	 (*gg)(i, j, k).set_frac(0, f1);
+	 (*gg)(i, j, k).set_frac(1, f2);
+	 (*gg)(i, j, k).set_tau(tau);
+	 if (State::cylindrical) {
+	 (*gg)(i, j, k).set_sx(sr);
+	 (*gg)(i, j, k).set_sy(lz);
+	 } else {
+	 (*gg)(i, j, k).set_sx(sx);
+	 (*gg)(i, j, k).set_sy(sy);
+	 }
+	 (*gg)(i, j, k).set_sz(sz);
+	 (*gg)(i, j, k).set_et(e);
+	 }
+	 }
+	 }
+	 }
+
+	 State::ei_floor *= erg / cm3;
+	 PhysicalConstants::set_cgs();
+	 State::rho_floor = 0.0;
+	 Real tmp = refine_floor;
+	 refine_floor = 0.0;
+	 for (int l = 0; l < get_local_node_cnt(); l++) {
+	 gg = dynamic_cast<BinaryStar*>(get_local_node(l));
+	 for (int k = BW; k < GNX - BW; k++) {
+	 for (int j = BW; j < GNX - BW; j++) {
+	 for (int i = BW; i < GNX - BW; i++) {
+	 State::rho_floor = max(State::rho_floor, 1.0e-14 * (*gg)(i, j, k).rho());
+	 refine_floor = max(refine_floor, tmp * (*gg)(i, j, k).rho());
+	 }
+	 }
+	 }
+	 }
+
+	 tmp = State::rho_floor;
+	 MPI_Allreduce(&tmp, &State::rho_floor, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD );
+	 tmp = refine_floor;
+	 MPI_Allreduce(&tmp, &refine_floor, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD );
+	 State::set_omega(State::get_omega() / s);
+	 dynamic_cast<HydroGrid*>(get_root())->HydroGrid::mult_dx(cm);
+	 #ifndef USE_FMM
+	 dynamic_cast<MultiGrid*>(get_root())->MultiGrid::mult_dx(cm);
+	 #endif
+	 for (int l = 0; l < get_local_node_cnt(); l++) {
+	 gg = dynamic_cast<BinaryStar*>(get_local_node(l));
+	 for (int k = BW; k < GNX - BW; k++) {
+	 for (int j = BW; j < GNX - BW; j++) {
+	 for (int i = BW; i < GNX - BW; i++) {
+	 (*gg)(i, j, k).floor(gg->HydroGrid::X(i, j, k));
+	 }
+	 }
+	 }
+	 }
+	 FMM_solve();
+	 FMM_from_children();
+	 get_root()->output("S", scf_iter / 10, GNX, BW);*/
 }
 
 void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {
@@ -637,10 +679,10 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 void BinaryStar::run(int argc, char* argv[]) {
 //	State::turn_off_total_energy();
 
-/*	if (scf_code) {
-		scf_run(argc, argv);
-		return;
-	}*/
+	/*	if (scf_code) {
+	 scf_run(argc, argv);
+	 return;
+	 }*/
 #ifndef USE_FMM
 	set_poisson_tolerance(1.0e-8);
 #endif
@@ -654,10 +696,10 @@ void BinaryStar::run(int argc, char* argv[]) {
 
 	if (argc == 2) {
 //		scf_code = true;
-//		scf_run(argc, argv);
+		scf_run(argc, argv);
 		scf_code = false;
 		PhysicalConstants::set_cgs();
-		setup_grid_structure();
+		//		setup_grid_structure();
 	} else {
 		read_from_file(argv[2], &step_cnt, &ostep_cnt);
 	}

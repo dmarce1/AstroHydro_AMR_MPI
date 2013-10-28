@@ -908,13 +908,13 @@ void HydroFMMGrid::null(int) {
 
 void HydroFMMGrid::step(Real dt) {
 	Real start_time;
-	Real beta[1] = { 1.0 };
-//	Real beta[2] = { 1.0, 0.5 };
+//	Real beta[1] = { 1.0 };
+	Real beta[2] = { 1.0, 0.5 };
 //	Real beta[3] = { 1.0, 0.25, 2.0 / 3.0 };
 	HydroGrid::set_dt(dt);
 	store();
 	store_pot();
-	for (int i = 0; i < 1; i++) {
+	for (int i = 0; i <2; i++) {
 
 		HydroGrid::set_beta(beta[i]);
 		start_time = MPI_Wtime();

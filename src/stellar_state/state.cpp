@@ -146,7 +146,7 @@ const char* StellarState::field_name(int i) {
 
 void StellarState::floor(const _3Vec& X) {
 	Real rho1, rho2;
-	Real de = conserved_energy(X);
+	Real de = pot();
 	(*this)[d_index] = max((*this)[d_index], rho_floor);
 	const Real ei0 = ei(X);
 	if (ei0 > 0.1 * et()) {
@@ -174,7 +174,7 @@ void StellarState::floor(const _3Vec& X) {
 			}
 		}
 	}
-	de -= conserved_energy(X);
+	de -= pot();
 	(*this)[et_index] += de;
 }
 

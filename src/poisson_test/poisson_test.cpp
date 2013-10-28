@@ -131,9 +131,9 @@ Real PoissonTest::get_output_point(int i, int j, int k, int l) const {
 		return analytic_force(xc(i), yc(j), zc(k))[2];
 #ifdef USE_FMM
 	case 9:
-		return get_dphi_dt(i, j, k);
+		return 0.0;
 	case 10:
-		return get_drho_dt(i, j, k);
+		return 0.0;
 	case 11:
 		return g_energy(i, j, k);
 #endif

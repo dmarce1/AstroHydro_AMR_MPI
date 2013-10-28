@@ -266,10 +266,10 @@ double density_at( binary_parameters_t* b, double x, double y, double z, int* st
 	r12 = (pow( x - b->x1, 2 ) + y*y + z*z);
 	r22 = (pow( x - b->x2, 2 ) + y*y + z*z);
 	if( r12 < b->r1*b->r1  ) {
-		rho = wd_density( b->rho1, sqrt(r12), b->r1/1000.0 );
+		rho = wd_density( b->rho1, sqrt(r12), b->r1/100.0 );
 		*star = +1;
 	} else if( r22 < b->r2*b->r2 ) {
-		rho = wd_density( b->rho2, sqrt(r22),  b->r2/1000.0 );
+		rho = wd_density( b->rho2, sqrt(r22),  b->r2/100.0 );
 		*star = -1;
 	} else {
 		rho = 0.0;

@@ -140,7 +140,7 @@ void HydroFMMGrid::moments_recv_dot(int) {
 			for (int k = zlb; k <= zub; k++) {
 				for (int j = ylb; j <= yub; j++) {
 					for (int i = xlb; i <= xub; i++) {
-						poles_dot(i, j, k).M_dot() = this->get_dudt(i + BW - FBW, j + BW - FBW, k + BW - FBW)[State::d_index];
+						poles_dot(i, j, k).M_dot() = this->get_dudt(i + BW - FBW, j + BW - FBW, k + BW - FBW)[State::d_index] * dv;
 					}
 				}
 			}
@@ -233,6 +233,7 @@ void HydroFMMGrid::moments_send_dot(int) {
 							for (int c = k; c < k + 2; c++) {
 								multipole_t& child = poles(a, b, c);
 								Y = child.X - Xp(i / 2, j / 2, k / 2);
+								tmp.M_dot += poles_dot(a, b, c).M_dot >> Y;
 							}
 						}
 					}
@@ -355,10 +356,10 @@ void HydroFMMGrid::compute_interactions(int) {
 				n1 = poles.ptr(i0, j0, k0);
 				l1 = L.ptr(i0, j0, k0);
 				//  Self potential
-				//		if (n1->is_leaf) {
-				//			const Real factor = (3.0 + 3.0 / sqrt(2.0) + 1.0 / sqrt(3.0)) / 3.0;
-				//			l1->phi() -= factor * n1->M() / get_dx();
-				//		}
+				if (n1->is_leaf) {
+					const Real factor = (3.0 + 3.0 / sqrt(2.0) + 1.0 / sqrt(3.0)) / 3.0;
+					l1->phi() -= factor * n1->M() / get_dx();
+				}
 				for (int k = zlb; k <= zub; k++) {
 					for (int j = ylb; j <= yub; j++) {
 						for (int i = xlb; i <= xub; i++) {
@@ -452,10 +453,10 @@ void HydroFMMGrid::compute_interactions_dot(int) {
 				}
 				n1 = poles_dot.ptr(i0, j0, k0);
 				l1 = L_dot.ptr(i0, j0, k0);
-//			if (poles(i0,j0,k0).is_leaf) {
-//					const Real factor = (3.0 + 3.0 / sqrt(2.0) + 1.0 / sqrt(3.0)) / 3.0;
-//					l1->phi_dot() -= factor * n1->M_dot() / get_dx();
-//				}
+				if (poles(i0, j0, k0).is_leaf) {
+					const Real factor = (3.0 + 3.0 / sqrt(2.0) + 1.0 / sqrt(3.0)) / 3.0;
+					l1->phi_dot() -= factor * n1->M_dot() / get_dx();
+				}
 				for (int k = zlb; k <= zub; k++) {
 					for (int j = ylb; j <= yub; j++) {
 						for (int i = xlb; i <= xub; i++) {
@@ -907,13 +908,13 @@ void HydroFMMGrid::null(int) {
 
 void HydroFMMGrid::step(Real dt) {
 	Real start_time;
-//	Real beta[1] = { 1.0 };
+	Real beta[1] = { 1.0 };
 //	Real beta[2] = { 1.0, 0.5 };
-	Real beta[3] = { 1.0, 0.25, 2.0 / 3.0 };
+//	Real beta[3] = { 1.0, 0.25, 2.0 / 3.0 };
 	HydroGrid::set_dt(dt);
 	store();
 	store_pot();
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 1; i++) {
 
 		HydroGrid::set_beta(beta[i]);
 		start_time = MPI_Wtime();
@@ -924,6 +925,8 @@ void HydroFMMGrid::step(Real dt) {
 		account_pot();
 		//	max_dt_driver();
 	}
+	FMM_from_children();
+	pot_to_hydro_grid();
 	set_time(get_time() + dt);
 }
 
@@ -941,6 +944,7 @@ bool HydroFMMGrid::check_for_refine() {
 		HydroGrid::redistribute_grids();
 		int count = OctNode::get_local_node_cnt();
 		FMM_solve();
+		FMM_from_children();
 	}
 	from_conserved_energy();
 	return rc;

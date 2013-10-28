@@ -51,11 +51,12 @@ typedef struct {
 } _4force_t;
 
 class HydroFMMGrid: public HydroGrid {
+public:
+	Array3d<taylor_t, FNX, FNX, FNX> L;
 private:
 	Array3d<multipole_t, FNX, FNX, FNX> poles;
 	Array3d<multipole_dot_t, FNX, FNX, FNX> poles_dot;
 	Array3d<taylor_dot_t, FNX, FNX, FNX> L_dot;
-	Array3d<taylor_t, FNX, FNX, FNX> L;
 	Array3d<Real, GNX, GNX, GNX> old_pot;
 	Array3d<_3Vec, FNX / 2, FNX / 2, FNX / 2> Xp;
 	Array3d<Real, GNX, GNX, GNX> dpot;
@@ -96,6 +97,20 @@ public:
 	static Vector<Real, 6> momentum_sum();
 	static Vector<Real, 4> com_sum();
 	Array3d<Real, GNX, GNX, GNX> drho_dt;
+	_3Vec g_grav(int i, int j, int k ) const {
+		_3Vec g;
+		g[0] = gx(i,j,k);
+		g[1] = gy(i,j,k);
+		g[2] = gz(i,j,k);
+		return g;
+	}
+	_3Vec g_eff(int i, int j, int k ) const {
+		_3Vec g;
+		g[0] = gx(i,j,k) + pow(State::get_omega(),2)*xc(i);
+		g[1] = gy(i,j,k) + pow(State::get_omega(),2)*yc(j);
+		g[2] = gz(i,j,k);
+		return g;
+	}
 	Real gx(int i, int j, int k) const;
 #ifdef USE_FMM_ANGULAR
 	Real g_lz(int i, int j, int k) const;

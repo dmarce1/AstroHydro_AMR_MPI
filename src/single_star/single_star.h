@@ -47,14 +47,23 @@ public:
 			return U.vz();
 		case 6:
 			return U.temp(x);
-#ifdef USE_FMM
 		case 7:
-			return get_phi(i, j, k);
+			return U.ei(x);
 		case 8:
-			return gx(i, j, k);
+			return D(i,j,k)[State::et_index];
 		case 9:
-			return gy(i, j, k);
+			return U.pg(x)-U.pd();
 		case 10:
+			return U.pd();
+
+#ifdef USE_FMM
+		case 11:
+			return get_phi(i, j, k);
+		case 12:
+			return gx(i, j, k);
+		case 13:
+			return gy(i, j, k);
+		case 14:
 			return gz(i, j, k);
 #else
 			default:
@@ -80,21 +89,29 @@ public:
 		case 6:
 			return "T";
 		case 7:
-			return "phi";
+			return "ei";
 		case 8:
-			return "gx";
+			return "de";
 		case 9:
-			return "gy";
+			return "pi";
 		case 10:
+			return "pd";
+		case 11:
+			return "phi";
+		case 12:
+			return "gx";
+		case 13:
+			return "gy";
+		case 14:
 			return "gz";
 		}
 		return "";
 	}
 	virtual int nvar_output() const {
 #ifdef USE_FMM
-		return 11;
+		return 15;
 #else
-		return 8;
+		return 12;
 #endif
 	}
 	static void run(int, char*[]);

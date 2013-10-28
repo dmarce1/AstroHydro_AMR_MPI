@@ -19,8 +19,9 @@ State HydroGrid::FO0 = Vector<Real, STATE_NF>(0.0);
 State HydroGrid::FO = Vector<Real, STATE_NF>(0.0);
 State HydroGrid::DFO = Vector<Real, STATE_NF>(0.0);
 
-HydroGrid::ifunc_t HydroGrid::es[GRID_ES_SIZE] = { &HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
-		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::max_dt_compute };
+HydroGrid::ifunc_t HydroGrid::es[GRID_ES_SIZE] = { &HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait, &HydroGrid::inject_from_children_send,
+		&HydroGrid::inject_from_children_send_wait,&HydroGrid::sync,&HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
+		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::sync,&HydroGrid::max_dt_compute };
 
 HydroGrid::ifunc_t HydroGrid::cs[GRID_CS_SIZE] = {&HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
 		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::flux_compute, &HydroGrid::flux_cf_adjust_recv,

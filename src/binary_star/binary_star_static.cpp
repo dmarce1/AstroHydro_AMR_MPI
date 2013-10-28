@@ -355,47 +355,64 @@ void BinaryStar::next_rho(Real Ka, Real phi0a, Real xa, Real Kd, Real phi0d, Rea
 
 }
 void BinaryStar::scf_run(int argc, char* argv[]) {
+	PhysicalConstants::set_cgs();
 	setup_grid_structure();
-	get_root()->output("S", 0, GNX, BW);
-	max_dt_driver();
 	const Real A = PhysicalConstants::A;
 	const Real B = PhysicalConstants::B;
-
+	static Array3d<Real, GNX, GNX, GNX> drho;
+	drho.allocate();
 	FMM_solve();
 	FMM_from_children();
+	pot_to_hydro_grid();
 	max_dt_driver();
+	get_root()->output("S", 0, GNX, BW);
+	Real m_a, com_a, m_d, com_d, l1_phi, l1_x;
+	_3Vec Xdon;
+	Xdon[1] = 0.0;
+	Xdon[2] = 0.0;
 
-	for (int i = 0; i < get_local_node_cnt(); i++) {
-		BinaryStar* g = dynamic_cast<BinaryStar*>(get_local_node(i));
-		for (int k = BW - 1; k < GNX - BW + 1; k++) {
-			for (int j = BW - 1; j < GNX - BW + 1; j++) {
-				for (int i = BW - 1; i < GNX - BW + 1; i++) {
-					Real d2_phi_eff = 0.0;
-					d2_phi_eff += (*g)(i + 1, j, k).phi_eff();
-					d2_phi_eff += (*g)(i - 1, j, k).phi_eff();
-					d2_phi_eff += (*g)(i, j - 1, k).phi_eff();
-					d2_phi_eff += (*g)(i, j + 1, k).phi_eff();
-					d2_phi_eff += (*g)(i, j, k - 1).phi_eff();
-					d2_phi_eff += (*g)(i, j, k + 1).phi_eff();
-					d2_phi_eff -= 6.0 * (*g)(i, j, k).phi_eff();
-					Real d2_hd = 0.0;
-					d2_hd += (*g)(i + 1, j, k).hd();
-					d2_hd += (*g)(i - 1, j, k).hd();
-					d2_hd += (*g)(i, j - 1, k).hd();
-					d2_hd += (*g)(i, j + 1, k).hd();
-					d2_hd += (*g)(i, j, k - 1).hd();
-					d2_hd += (*g)(i, j, k + 1).hd();
-					d2_hd -= 6.0 * (*g)(i, j, k).hd();
-					(*g)(i,j,k)[State::d_index] += d2_hd + d2_phi_eff;
+	find_mass(0, &m_a, &com_a);
+	find_mass(1, &m_d, &com_d);
+	find_l(com_a, com_d, &l1_phi, &l1_x, 1);
+	Xdon[0] = com_d;
+
+	Real verr = dynamic_cast<BinaryStar*>(get_root())->virial_error();
+	if (MPI_rank() == 0) {
+		printf("Virial=%e Mdon=%e\n", verr, m_d);
+	}
+	for (int iter = 0; iter < 100; iter++) {
+
+		for (int l = 0; l < get_local_node_cnt(); l++) {
+			BinaryStar* g = dynamic_cast<BinaryStar*>(get_local_node(l));
+			for (int k = BW; k < GNX - BW; k++) {
+				for (int j = BW; j < GNX - BW; j++) {
+					for (int i = BW; i < GNX - BW; i++) {
+						if ((g->xc(i) > l1_x) && (g->g_eff(i, j, k).dot(g->X(i, j, k) - Xdon) < 0.0) && ((*g)(i, j, k).phi_eff() < l1_phi)) {
+							Real h = max(l1_phi - (*g)(i, j, k).phi_eff(), 0.0);
+							Real new_rho = B * pow(pow((h * B / (8.0 * A) + 1.0), 2) - 1.0, 1.5);
+							(*g)(i, j, k)[State::d_index] *= (6.0/7.0);
+							(*g)(i, j, k)[State::d_index] += (1.0/7.0)*max(new_rho, State::rho_floor);
+							(*g)(i, j, k).set_frac(1, (*g)(i, j, k)[State::d_index]);
+							(*g)(i, j, k).set_frac(0, State::rho_floor);
+						}
+					}
 				}
 			}
 		}
-	}
 
-	FMM_solve();
-	FMM_from_children();
-	max_dt_driver();
-	get_root()->output("S", 1, GNX, BW);
+		FMM_solve();
+		FMM_from_children();
+		max_dt_driver();
+		get_root()->output("S", 1 + iter, GNX, BW);
+		find_mass(0, &m_a, &com_a);
+		find_mass(1, &m_d, &com_d);
+	//	find_l(com_a, com_d, &l1_phi, &l1_x, 1);
+		Xdon[0] = com_d;
+		verr = dynamic_cast<BinaryStar*>(get_root())->virial_error();
+		if (MPI_rank() == 0) {
+			printf("Virial=%e Mdon=%e l1_x = %e l1_phi = %e\n", verr, m_d, l1_x, l1_phi);
+		}
+	}
 
 	/*	int maxlev = get_max_level_allowed();
 	 set_max_level_allowed(min(maxlev, 7));
@@ -699,7 +716,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 	//	scf_run(argc, argv);
 		scf_code = false;
 		PhysicalConstants::set_cgs();
-		//		setup_grid_structure();
+						setup_grid_structure();
 	} else {
 		read_from_file(argv[2], &step_cnt, &ostep_cnt);
 	}
@@ -813,8 +830,8 @@ void BinaryStar::integrate_conserved_variables(Vector<Real, STATE_NF>* sum_ptr) 
 	BinaryStar* g;
 	Vector<Real, STATE_NF> my_sum = 0.0;
 	Real dv;
-	for (int i = 0; i < get_local_node_cnt(); i++) {
-		g = dynamic_cast<BinaryStar*>(get_local_node(i));
+	for (int m = 0; m < get_local_node_cnt(); m++) {
+		g = dynamic_cast<BinaryStar*>(get_local_node(m));
 		dv = pow(g->get_dx(), 3);
 		for (int k = BW; k < GNX - BW; k++) {
 			for (int j = BW; j < GNX - BW; j++) {
@@ -850,8 +867,8 @@ void BinaryStar::diagnostics(Real dt) {
 	Real dlz_flow_off = 0.0;
 	Real da;
 	Real etall = 0.0;
-	for (int i = 0; i < get_local_node_cnt(); i++) {
-		b = dynamic_cast<BinaryStar*>(get_local_node(i));
+	for (int m = 0; m < get_local_node_cnt(); m++) {
+		b = dynamic_cast<BinaryStar*>(get_local_node(m));
 		dv = pow(b->get_dx(), 3);
 		da = pow(b->get_dx(), 2);
 		for (int k = BW; k < GNX - BW; k++) {
@@ -1094,9 +1111,9 @@ void BinaryStar::find_l(Real m1_x, Real m2_x, Real* l1_phi, Real* l1_x, int lnum
 				if (!g->zone_is_refined(i, j, k)) {
 					x = g->HydroGrid::xc(i);
 					if (lnum == 1) {
-						test = x > m2_x && x < m1_x;
+						test = x < m2_x && x > m1_x;
 					} else {
-						test = x < m2_x;
+						test = x > m2_x;
 					}
 					if (test) {
 						if ((*g)(i, j, k).phi_eff() > phi_max) {

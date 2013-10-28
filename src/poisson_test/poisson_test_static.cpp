@@ -32,6 +32,7 @@ void PoissonTest::run(int argc, char* argv[]) {
 #ifdef USE_FMM
 	HydroFMMGrid::solve_on = true;
 	FMM_solve();
+	FMM_solve_dot();
 	HydroFMMGrid::solve_on = false;
 #else
 	Real err = vcycle();

@@ -39,9 +39,10 @@ typedef BinaryStar ProblemGrid;
 
 #ifdef SINGLE_STAR
 #define STELLAR_STATE
+#define USE_FMM
 #define NFRAC 2
 #define HYDRO_GRAV_GRID
-#define USE_FMM
+//#define USE_FMM
 #include "./single_star/defs.h"
 #include "stellar_state/state.h"
 class SingleStar;

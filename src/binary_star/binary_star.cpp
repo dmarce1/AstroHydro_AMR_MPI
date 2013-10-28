@@ -171,6 +171,8 @@ void BinaryStar::initialize() {
 		bparam.m2 = 0.20;
 		bparam.fill_factor = 1.0;
 		binary_parameters_compute(&bparam);
+		State::rho_floor = 1.0e-12 * bparam.rho1;
+		refine_floor = 1.0e-6 * bparam.rho1;
 		dynamic_cast<HydroGrid*>(get_root())->HydroGrid::mult_dx(bparam.a * 5.0);
 		State::set_omega(bparam.omega);
 		if (MPI_rank() == 0) {
@@ -184,15 +186,15 @@ void BinaryStar::initialize() {
 			for (int i = BW - 1; i < GNX - BW + 1; i++) {
 				int id;
 				State U = Vector<Real, STATE_NF>(0.0);
-				Real R2 = (xc(i)*xc(i)+yc(j)*yc(j));
+				Real R2 = (xc(i) * xc(i) + yc(j) * yc(j));
 				Real rho = density_at(&bparam, xc(i), yc(j), zc(k), &id);
-				rho = max( rho, State::rho_floor );
-				Real tau = pow( State::ei_floor, 1.0/State::gamma);
+				rho = max(rho, State::rho_floor);
+				Real tau = pow(State::ei_floor, 1.0 / State::gamma);
 				U.set_rho(rho);
 				U.set_et(U.ed());
 				U.set_tau(tau);
 				U.set_sx(0.0);
-				U.set_sy(bparam.omega*R2*U.rho());
+				U.set_sy(bparam.omega * R2 * U.rho());
 				U.set_sz(0.0);
 				if (id == 1) {
 					U.set_frac(0, U.rho());

@@ -4,8 +4,9 @@
 #include "defs.h"
 
 #define nrowmax 1000
-
+#ifdef USE_HELMHOLTZ
 __attribute__((constructor))
+#endif
 void initialize_iso7() {
 	init_iso7_();
 	read_helm_table_();
@@ -18,6 +19,7 @@ void nuclear_burn(double dt, double density, double ein, double T, double xx[ISO
 	double abar = 0.0, zbar = 0.0;
 	double cs, p, tmp;
 	ein /= density;
+
 	burner_(&dt, &T, &density, &ein, xx, Tout, dout, eout, yy, &conserv, &nok, &nbad);
 	*eout *= density;
 }

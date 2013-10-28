@@ -742,6 +742,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 		}
 	}
 	int iter = 0;
+	Real time_start = MPI_Wtime();
 	do {
 		iter++;
 		if (iter == 10) {
@@ -797,10 +798,13 @@ void BinaryStar::run(int argc, char* argv[]) {
 			check_for_refine();
 		}
 		step_cnt++;
+
+
 		if (MPI_rank() == 0) {
 			nnodes = OctNode::get_node_cnt();
-			printf("step=%i t=%e dt=%e lmax=%i ngrids=%i", step_cnt, HydroGrid::get_time(), dt, OctNode::get_max_level(), nnodes);
+			printf("step=%i t=%e dt=%e lmax=%i ngrids=%i step_time=%e s", step_cnt, HydroGrid::get_time(), dt, OctNode::get_max_level(), nnodes, MPI_Wtime() - time_start);
 		}
+	time_start = MPI_Wtime();
 		if (do_output) {
 			if (MPI_rank() == 0) {
 				printf("*");

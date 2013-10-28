@@ -120,7 +120,15 @@ void OctNode::compute_distribution() {
 	}
 //	next_processor = node_dist[get_level()] * MPI_size() / node_sums[get_level()];
 //	node_dist[get_level()]++;
+#ifdef RANK_ZERO_HAS_ONE_GRID
+	if( node_counter == 0 ) {
+		next_processor = 0;
+	} else {
+		next_processor = node_counter * (MPI_size()-1) / (get_node_cnt()-1)+1;
+	}
+#else
 	next_processor = node_counter * MPI_size() / get_node_cnt();
+#endif
 	this->myid = node_counter;
 	node_counter++;
 	for (int i = 0; i < OCT_NCHILD; i++) {
@@ -679,7 +687,7 @@ void OctNode::output(grid_output_t* ptr, int nx0, int bw0) const {
 				}
 			}
 			if (cnt != 0) {
-				MPI_Recv(output_buffer, cnt * nvar, MPI_DOUBLE_PRECISION, proc(), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(output_buffer, cnt * nvar, MPI_DOUBLE_PRECISION, proc(), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
 			}
 		}
 		for (int k = bw0; k < nx0 + 1 - bw0; k++) {
@@ -749,7 +757,7 @@ void OctNode::output(grid_output_t* ptr, int nx0, int bw0) const {
 				}
 			}
 			if (cnt != 0) {
-				MPI_Send(output_buffer, cnt * nvar, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD);
+				MPI_Send(output_buffer, cnt * nvar, MPI_DOUBLE_PRECISION, 0, 0, MPI_COMM_WORLD );
 			}
 		}
 	}

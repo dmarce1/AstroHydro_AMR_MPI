@@ -17,6 +17,7 @@
 class BinaryStar: public HydroFMMGrid {
 public:
 	static binary_parameters_t bparam;
+	static bool bparam_init;
 #else
 	class BinaryStar: public HydroGravGrid {
 #endif

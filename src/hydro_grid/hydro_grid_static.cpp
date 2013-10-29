@@ -205,7 +205,7 @@ void HydroGrid::run(int argc, char* argv[]) {
 	}
 }
 
-void HydroGrid::setup_grid_structure() {
+void HydroGrid::setup_grid_structure(bool one_iter) {
 	Real dt;
 	HydroGrid::set_time(0.0);
 	OctNode::get_root()->find_local_nodes();
@@ -224,6 +224,9 @@ void HydroGrid::setup_grid_structure() {
 		}
 		OctNode::initialize_grids();
 		dt = min(max_dt_driver(), MAXINITDT);
+		if( one_iter ) {
+			break;
+		}
 	}
 
 }

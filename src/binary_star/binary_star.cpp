@@ -3,6 +3,7 @@
 
 #include "dwd.h"
 
+//#define REFINE_ACC_MORE
 #ifdef HYDRO_GRAV_GRID
 #ifdef BINARY_STAR
 
@@ -97,7 +98,11 @@ void BinaryStar::set_refine_flags() {
 				c.set_y(2 * j / GNX);
 				for (int i = BW; i < GNX - BW; i++) {
 					c.set_x(2 * i / GNX);
+#ifdef REFINE_ACC_MORE
 					if ((get_level() == get_max_level_allowed() - 1 && (*this)(i, j, k).frac(0) > refine_floor) || get_level() < get_max_level_allowed() - 1) {
+#else
+					if (get_level() < get_max_level_allowed()) {
+#endif
 						if (!get_refine_flag(c)) {
 							//              set_refine_flag(c, true);
 							Real ra = (X(i, j, k) - a0).mag();
@@ -162,24 +167,17 @@ void BinaryStar::set_refine_flags() {
  */
 
 binary_parameters_t BinaryStar::bparam;
-static bool bparam_init = false;
+bool BinaryStar::bparam_init = false;
 
 void BinaryStar::initialize() {
 	if (!bparam_init) {
 		bparam_init = true;
-		bparam.m1 = 1.04;
-		bparam.m2 = 0.20;
-		bparam.fill_factor = 1.0;
+		bparam.fill_factor = 0.97;
 		binary_parameters_compute(&bparam);
 		State::rho_floor = 1.0e-12 * bparam.rho1;
 		refine_floor = 1.0e-6 * bparam.rho1;
 		dynamic_cast<HydroGrid*>(get_root())->HydroGrid::mult_dx(bparam.a * 5.0);
 		State::set_omega(bparam.omega);
-		if (MPI_rank() == 0) {
-			printf("period     = %e\n", bparam.P);
-			printf("omega      = %e\n", bparam.omega);
-			printf("separation = %e\n", bparam.a);
-		}
 	}
 	for (int k = BW - 1; k < GNX - BW + 1; k++) {
 		for (int j = BW - 1; j < GNX - BW + 1; j++) {

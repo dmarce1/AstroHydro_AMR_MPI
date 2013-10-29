@@ -134,7 +134,7 @@ protected:
 	static void shadow_off();
 	static Real max_dt_driver();
 	bool zone_is_refined(int, int, int) const;
-	static void setup_grid_structure();
+	static void setup_grid_structure(bool=false);
 	static Real next_dt(bool* do_output, bool* last_step, int*, Real freq = OUTPUT_TIME_FREQ);
 	static void step(Real dt);
 	void reduce_dt(Real dt);

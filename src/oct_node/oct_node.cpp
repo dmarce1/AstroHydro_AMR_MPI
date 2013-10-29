@@ -124,7 +124,7 @@ void OctNode::compute_distribution() {
 	if( node_counter == 0 ) {
 		next_processor = 0;
 	} else {
-		next_processor = node_counter * (MPI_size()-1) / (get_node_cnt()-1)+1;
+		next_processor = (node_counter-1) * (MPI_size()-1) / (get_node_cnt()-1)+1;
 	}
 #else
 	next_processor = node_counter * MPI_size() / get_node_cnt();

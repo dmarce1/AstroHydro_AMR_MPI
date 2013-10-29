@@ -161,7 +161,7 @@ void BinaryStar::set_refine_flags() {
  }
  */
 
-binary_parameters_t bparam;
+binary_parameters_t BinaryStar::bparam;
 static bool bparam_init = false;
 
 void BinaryStar::initialize() {

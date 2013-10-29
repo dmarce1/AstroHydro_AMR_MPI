@@ -185,12 +185,9 @@ public:
 										if (!g->zone_is_refined(i + BW - FBW, j + BW - FBW, k + BW - FBW)) {
 											//		p = g->get_phi(i + BW - FBW, j + BW - FBW, k + BW - FBW);
 											Real c0 = g->L(i, j, k).phi();
-											Real c1 = g->L(i, j, k).phi(0);
-											Real c2 = g->L(i, j, k).phi(0, 0);
-											Real c3 = g->L(i, j, k).phi(0, 0, 0);
-											Real dx = (x - g->xc(i + BW - FBW));
-											p = c0 + c1 * dx + 0.5 * c2 * dx * dx + (1.0 / 6.0) * c3 * dx * dx * dx;
-
+									//		Real c1 = g->L(i, j, k).phi(0);
+									//		Real dx = (x - g->xc(i + BW - FBW));
+											p = c0;// + c1 * dx;
 										}
 									}
 								}

@@ -10,10 +10,13 @@
 
 #include "../hydro_grav_grid/hydro_grav_grid.h"
 #include "../hydro_FMM_grid/hydro_FMM_grid.h"
+#include "dwd.h"
 
 #ifdef HYDRO_GRAV_GRID
 #ifdef USE_FMM
 class BinaryStar: public HydroFMMGrid {
+public:
+	static binary_parameters_t bparam;
 #else
 	class BinaryStar: public HydroGravGrid {
 #endif

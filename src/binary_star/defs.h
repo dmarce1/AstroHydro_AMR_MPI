@@ -22,5 +22,5 @@
 #define DRIVING_TIME		0.0
 //#define NGRID_LIMIT         1000
 
-#define  RANK_Z_HAS_ONE_GRID
+#define  RANK_ZERO_HAS_ONE_GRID
 #endif

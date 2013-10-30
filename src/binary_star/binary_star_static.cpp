@@ -570,6 +570,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	get_root()->output("S", iter / 5 + 2, GNX, BW);
 	write_to_file(0, 0, "init");
 	if( MPI_rank() == 0 ) {
+		system( "mkdir output\n" );
 		system( "mkdir checkpoint\n" );
 		system( "mkdir scf\n" );
 		system( "cp checkpoint.init.*.bin ./scf\n");
@@ -703,7 +704,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 	State sum;
 	if (get_time() == 0.0) {
 		FMM_solve();
-		get_root()->output("X", 0.0, GNX, BW);
+		get_root()->output("./output/X", 0.0, GNX, BW);
 		integrate_conserved_variables(&sum);
 		if (State::cylindrical) {
 			lz_t0 = sum[State::sy_index];
@@ -772,7 +773,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 			if (MPI_rank() == 0) {
 				printf("*");
 			}
-			get_root()->output("X", nint(HydroGrid::get_time() / ofreq), GNX, BW);
+			get_root()->output("./output/X", nint(HydroGrid::get_time() / ofreq), GNX, BW);
 		}
 		if (MPI_rank() == 0) {
 			printf("\n");

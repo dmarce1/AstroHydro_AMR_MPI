@@ -509,12 +509,12 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		for (int k = BW; k < GNX - BW; k++) {
 			for (int j = BW; j < GNX - BW; j++) {
 				for (int i = BW; i < GNX - BW; i++) {
-					(*g)(i, j, k)[State::d_index] *= Bratio;
+					(*g)(i, j, k)[State::d_index] /= Bratio;
 				}
 			}
 		}
 	}
-	omega *= Bratio * Bratio;
+	omega /= Bratio * Bratio;
 	State::set_omega(omega);
 	find_mass(0, &m_a, &com_a);
 	find_mass(1, &m_d, &com_d);

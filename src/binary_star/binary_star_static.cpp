@@ -373,7 +373,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	Real& A = PhysicalConstants::A;
 	Real& B = PhysicalConstants::B;
 	const Real Bover8A = 0.125 * B / A;
-	BinaryStar* g;
+	BinaryStar* g0;
 	Real xc_d, xc_a;
 	_3Vec XC_d, XC_a;
 	Real rho0_d, tmp, h0_a, h0_d, h;
@@ -405,14 +405,14 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		phi0_a = get_phi_at(xc_a, 0.0, 0.0);
 		rho0_d = 0.0;
 		for (int l = 0; l < get_local_node_cnt(); l++) {
-			g = dynamic_cast<BinaryStar*>(get_local_node(l));
+			g0 = dynamic_cast<BinaryStar*>(get_local_node(l));
 			for (int k = BW; k < GNX - BW; k++) {
 				for (int j = BW; j < GNX - BW; j++) {
 					for (int i = BW; i < GNX - BW; i++) {
-						if (g->zone_is_refined(i, j, k)) {
-							if (fabs(g->zc(k)) < g->get_dx() / 2.0 && fabs(g->yc(j)) < g->get_dx() / 2.0) {
-								if (fabs(g->xc(i) - xc_d) < g->get_dx() / 2.0) {
-									rho0_d = (*g)(i, j, k).rho();
+						if (g0->zone_is_refined(i, j, k)) {
+							if (fabs(g0->zc(k)) < g0->get_dx() / 2.0 && fabs(g0->yc(j)) < g0->get_dx() / 2.0) {
+								if (fabs(g0->xc(i) - xc_d) < g0->get_dx() / 2.0) {
+									rho0_d = (*g0)(i, j, k).rho();
 								}
 							}
 						}
@@ -424,7 +424,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		MPI_Allreduce(&tmp, &rho0_d, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
 		Real phi_min_a, phi_min_d, xa, xd;
 		find_phimins(&phi_min_a, &xa, &phi_min_d, &xd);
-		C_d = l1_phi * 0.99 + phi_min_d * 0.01;
+		C_d = l1_phi * 1.0 + phi_min_d * 0.0;
 		xm_d = l1_x;
 		o2 = 2.0 * (phip_d - C_d) / (xp_d * xp_d - l1_x * l1_x);
 		omega = sqrt(o2);
@@ -452,16 +452,17 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 			set_origin(O);
 		}
 		for (int l = 0; l < get_local_node_cnt(); l++) {
-			g = dynamic_cast<BinaryStar*>(get_local_node(l));
+			g0 = dynamic_cast<BinaryStar*>(get_local_node(l));
 			for (int k = BW; k < GNX - BW; k++) {
 				for (int j = BW; j < GNX - BW; j++) {
 					for (int i = BW; i < GNX - BW; i++) {
-						Real R2 = g->xc(i) * g->xc(i) + g->yc(j) * g->yc(j);
-						Real phi_eff = g->get_phi(i, j, k) - 0.5 * o2 * R2;
-						if ((g->xc(i) >= xm_d) && (g->g_eff(i, j, k).dot(g->X(i, j, k) - XC_d) < 0.0 || (g->X(i, j, k) - XC_d).mag() < 2.0 * min_dx) && (phi_eff < C_d)) {
+						Real R2 = g0->xc(i) * g0->xc(i) + g0->yc(j) * g0->yc(j);
+						Real phi_eff = g0->get_phi(i, j, k) - 0.5 * o2 * R2;
+						if ((g0->xc(i) >= xm_d) && (g0->g_eff(i, j, k).dot(g0->X(i, j, k) - XC_d) < 0.0 || (g0->X(i, j, k) - XC_d).mag() < 2.0 * min_dx)
+								&& (phi_eff < C_d)) {
 							h = max(C_d - phi_eff, 0.0);
 							new_rho = B * pow(pow(h * Bover8A + 1.0, 2) - 1.0, 1.5);
-						} else if ((g->xc(i) <= xm_d) && (g->g_eff(i, j, k).dot(g->X(i, j, k) - XC_a) < 0.0 || (g->X(i, j, k) - XC_a).mag() < 2.0 * min_dx)
+						} else if ((g0->xc(i) <= xm_d) && (g0->g_eff(i, j, k).dot(g0->X(i, j, k) - XC_a) < 0.0 || (g0->X(i, j, k) - XC_a).mag() < 2.0 * min_dx)
 								&& (phi_eff < C_a)) {
 							h = max(C_a - phi_eff, 0.0);
 							new_rho = B * pow(pow(h * Bover8A + 1.0, 2) - 1.0, 1.5);
@@ -469,14 +470,14 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 							new_rho = 0.0;
 						}
 						new_rho = max(new_rho, State::rho_floor);
-						(*g)(i, j, k)[State::d_index] *= 1.0 - w;
-						(*g)(i, j, k)[State::d_index] += w * new_rho;
-						if (g->xc(i) > xm_d) {
-							(*g)(i, j, k).set_frac(1, max((*g)(i, j, k).rho(), State::rho_floor * 0.5));
-							(*g)(i, j, k).set_frac(0, State::rho_floor * 0.5);
+						(*g0)(i, j, k)[State::d_index] *= 1.0 - w;
+						(*g0)(i, j, k)[State::d_index] += w * new_rho;
+						if (g0->xc(i) > xm_d) {
+							(*g0)(i, j, k).set_frac(1, max((*g0)(i, j, k).rho(), State::rho_floor * 0.5));
+							(*g0)(i, j, k).set_frac(0, State::rho_floor * 0.5);
 						} else {
-							(*g)(i, j, k).set_frac(1, State::rho_floor * 0.5);
-							(*g)(i, j, k).set_frac(0, max((*g)(i, j, k).rho(), State::rho_floor * 0.5));
+							(*g0)(i, j, k).set_frac(1, State::rho_floor * 0.5);
+							(*g0)(i, j, k).set_frac(0, max((*g0)(i, j, k).rho(), State::rho_floor * 0.5));
 						}
 					}
 				}
@@ -501,64 +502,81 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		}
 	};
 
-	Real oldB = B;
+	Real g = pow(A, -1.5) * B * B;
+	Real s = sqrt(B);
+	Real cm = B / sqrt(A);
+//	printf( "%e %e\n", A,B);
 	PhysicalConstants::set_cgs();
-	Real Bratio = oldB / B;
+//	printf( "%e %e\n", A,B);
+	g *= pow(A, 1.5) / B / B;
+	s *= 1.0 / sqrt(B);
+	cm *= 1.0 / B * sqrt(A);
+//	printf( "%e %e %e\n", g, s, cm);
 	for (int l = 0; l < get_local_node_cnt(); l++) {
-		g = dynamic_cast<BinaryStar*>(get_local_node(l));
+		g0 = dynamic_cast<BinaryStar*>(get_local_node(l));
 		for (int k = BW; k < GNX - BW; k++) {
 			for (int j = BW; j < GNX - BW; j++) {
 				for (int i = BW; i < GNX - BW; i++) {
-					(*g)(i, j, k)[State::d_index] /= Bratio;
+					(*g0)(i, j, k)[State::d_index] *= g / (cm * cm * cm);
 				}
 			}
 		}
 	}
-	omega /= Bratio * Bratio;
+	omega *= 1.0 / s;
 	State::set_omega(omega);
-	find_mass(0, &m_a, &com_a);
-	find_mass(1, &m_d, &com_d);
-	com_x = (m_a * com_a + m_d * com_d) / (m_a + m_d);
-	O[0] += com_x;
-	set_origin(O);
+	dynamic_cast<HydroGrid*>(get_root())->HydroGrid::mult_dx(cm);
+	for (int l = 0; l < get_local_node_cnt(); l++) {
+		g0 = dynamic_cast<BinaryStar*>(get_local_node(l));
+		for (int k = BW; k < GNX - BW; k++) {
+			for (int j = BW; j < GNX - BW; j++) {
+				for (int i = BW; i < GNX - BW; i++) {
+					if (g0->xc(i) < xm_d) {
+						(*g0)(i, j, k)[State::frac_index + 0] = (*g0)(i, j, k).rho() - State::rho_floor / 2.0;
+						(*g0)(i, j, k)[State::frac_index + 1] = State::rho_floor / 2.0;
+					} else {
+						(*g0)(i, j, k)[State::frac_index + 1] = (*g0)(i, j, k).rho() - State::rho_floor / 2.0;
+						(*g0)(i, j, k)[State::frac_index + 0] = State::rho_floor / 2.0;
+					}
+					(*g0)(i, j, k).set_et((*g0)(i, j, k).ed() + State::ei_floor);
+					(*g0)(i, j, k).set_tau(pow(State::ei_floor, 1.0 / State::gamma));
+					(*g0)(i, j, k).set_sx(0.0);
+					(*g0)(i, j, k).set_sy(omega * (*g0)(i, j, k).rho() * (g0->xc(i) * g0->xc(i) + g0->yc(j) * g0->yc(j)));
+					(*g0)(i, j, k).set_sz(0.0);
+				}
+			}
+		}
+	}
 	find_mass(0, &m_a, &com_a);
 	find_mass(1, &m_d, &com_d);
 	com_x = (m_a * com_a + m_d * com_d) / (m_a + m_d);
 	FMM_solve();
+	FMM_from_children();
+	max_dt_driver();
 	Real verr = dynamic_cast<BinaryStar*>(get_root())->virial_error();
-	for (int l = 0; l < get_local_node_cnt(); l++) {
-		g = dynamic_cast<BinaryStar*>(get_local_node(l));
-		for (int k = BW; k < GNX - BW; k++) {
-			for (int j = BW; j < GNX - BW; j++) {
-				for (int i = BW; i < GNX - BW; i++) {
-					if (g->xc(i) < xm_d) {
-						(*g)(i, j, k)[State::frac_index + 0] = (*g)(i, j, k).rho() - State::rho_floor / 2.0;
-						(*g)(i, j, k)[State::frac_index + 1] = State::rho_floor / 2.0;
-					} else {
-						(*g)(i, j, k)[State::frac_index + 1] = (*g)(i, j, k).rho() - State::rho_floor / 2.0;
-						(*g)(i, j, k)[State::frac_index + 0] = State::rho_floor / 2.0;
-					}
-					(*g)(i, j, k).set_et((*g)(i, j, k).ed() + State::ei_floor);
-					(*g)(i, j, k).set_tau(pow(State::ei_floor, 1.0 / State::gamma));
-					(*g)(i, j, k).set_sx(0.0);
-					(*g)(i, j, k).set_sy(omega * (*g)(i, j, k).rho() * (g->xc(i) * g->xc(i) + g->yc(j) * g->yc(j)));
-					(*g)(i, j, k).set_sz(0.0);
-				}
-			}
-		}
-	}
 	if (MPI_rank() == 0) {
-		printf("\n SCF Parameters\n");
-		printf("Virial Error   = %e\n", verr);
-		printf("Omega          = %0.5f Hertz \n", omega);
-		printf("Period         = %0.3f m\n", 2.0 * M_PI / omega / 60.0);
-		printf("Accretor Mass  = %0.3f Msol\n", m_a / 1.98e+33);
-		printf("Donor Mass     = %0.3f Msol\n", m_d / 1.98e+33);
-		printf("Mass Ratio     = %0.3f\n", m_d / m_a);
-		printf("Separation     = %0.3f M_R\n", (com_d - com_a) / 7e+10);
-		printf("Center of Mass = %e cm\n", com_x);
+		FILE* fp = fopen( "scf.dat", "wt");
+		fprintf(fp, "\n SCF Parameters\n");
+		fprintf(fp, "Virial Error   = %e\n", verr);
+		fprintf(fp, "Omega          = %0.5f Hertz \n", omega);
+		fprintf(fp, "Period         = %0.3f m\n", 2.0 * M_PI / omega / 60.0);
+		fprintf(fp, "Accretor Mass  = %0.3f Msol\n", m_a / 1.98e+33);
+		fprintf(fp, "Donor Mass     = %0.3f Msol\n", m_d / 1.98e+33);
+		fprintf(fp, "Mass Ratio     = %0.3f\n", m_d / m_a);
+		fprintf(fp, "Separation     = %0.3f M_R\n", (com_d - com_a) / 7e+10);
+		fprintf(fp, "Center of Mass = %e cm\n", com_x);
+		fclose(fp);
+		system( "cat scf.dat\n");
 	}
 	get_root()->output("S", iter / 5 + 2, GNX, BW);
+	write_to_file(0, 0, "init");
+	if( MPI_rank() == 0 ) {
+		system( "mkdir checkpoint\n" );
+		system( "mkdir scf\n" );
+		system( "cp checkpoint.init.*.bin ./scf\n");
+		system( "mv S.*.silo ./scf\n");
+		system( "mv scf.dat ./scf\n");
+		system( "mv checkpoint.init.*.bin ./checkpoint\n");
+	}
 }
 
 void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {
@@ -570,7 +588,7 @@ void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {
 	Real omega;
 	FILE* fp;
 	_3Vec O;
-	asprintf(&fname, "checkpoint.%s.%i.bin", str, MPI_rank());
+	asprintf(&fname, "./checkpoint/%s.%i.bin", str, MPI_rank());
 	fp = fopen(fname, "rb");
 	if (fp == NULL) {
 		printf("Error - Checkpoint file not found!");
@@ -616,7 +634,7 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 	if (MPI_rank() != 0) {
 		MPI_Recv(&dummy, 1, MPI_BYTE, MPI_rank() - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
 	}
-	asprintf(&fname, "checkpoint.%s.%i.bin", idname, MPI_rank());
+	asprintf(&fname, "./checkpoint/%s.%i.bin", idname, MPI_rank());
 	fp = fopen(fname, "wb");
 	free(fname);
 	fwrite(&refine_floor, sizeof(Real), 1, fp);
@@ -663,6 +681,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 	if (argc == 4) {
 //		scf_code = true;
 		scf_run(argc, argv);
+		return;
 		scf_code = false;
 		PhysicalConstants::set_cgs();
 //						setup_grid_structure();
@@ -731,7 +750,8 @@ void BinaryStar::run(int argc, char* argv[]) {
 		State::set_drift_vel(-com_vel_correction);
 		if (MPI_rank() == 0) {
 			FILE* fp = fopen("com.dat", "at");
-			fprintf(fp, "%.12e %.12e %.12e %.12e %.12e %.12e %.12e\n", get_time(), com[0], com[1], com[2], com_vel_correction[0], com_vel_correction[1], com_vel_correction[2]);
+			fprintf(fp, "%.12e %.12e %.12e %.12e %.12e %.12e %.12e\n", get_time(), com[0], com[1], com[2], com_vel_correction[0], com_vel_correction[1],
+					com_vel_correction[2]);
 			fclose(fp);
 		}
 

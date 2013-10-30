@@ -25,12 +25,12 @@
 								</option>
 								<option id="intel.compilestep.coptions.567593646" name="Additional Options" superClass="intel.compilestep.coptions" value="-Wuninitialized" valueType="string"/>
 								<option id="intel.compilestep.optimization.optprefetch.1807505230" name="Enable Prefetch Insertion (-opt-prefetch[=n])" superClass="intel.compilestep.optimization.optprefetch" value="optprefetch.three" valueType="enumerated"/>
-								<option id="intel.compilestep.optimization.ipo.1699619276" name="Enable Whole Program Optimization (-ipo)" superClass="intel.compilestep.optimization.ipo" value="false" valueType="boolean"/>
+								<option id="intel.compilestep.optimization.ipo.1699619276" name="Enable Whole Program Optimization (-ipo)" superClass="intel.compilestep.optimization.ipo" value="true" valueType="boolean"/>
 								<option id="intel.compilestep.optimization.inline.expand1.1136322400" name="Inline Function Expansion" superClass="intel.compilestep.optimization.inline.expand1" value="inl.exp1.anysuitable" valueType="enumerated"/>
 								<option id="intel.compilestep.general.optimization2.1065350418" name="Optimization Level" superClass="intel.compilestep.general.optimization2" value="general.opt.speedHLO" valueType="enumerated"/>
 								<option id="intel.compilestep.cg.reqintelextensions4.831332356" name="Intel Processor-Specific Optimization" superClass="intel.compilestep.cg.reqintelextensions4" value="intel.cg.reqhost" valueType="enumerated"/>
 								<option id="intel.compilestep.float.fpmodel.261768298" name="Floating Point Model" superClass="intel.compilestep.float.fpmodel" value="fpmodel.fast.2" valueType="enumerated"/>
-								<option id="intel.compilestep.optimization.ip.2089458738" name="Enable Interprocedural Optimization for Single File Compilation (-ip)" superClass="intel.compilestep.optimization.ip" value="true" valueType="boolean"/>
+								<option id="intel.compilestep.optimization.ip.2089458738" name="Enable Interprocedural Optimization for Single File Compilation (-ip)" superClass="intel.compilestep.optimization.ip" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.optimization.unrollcnt.1166286300" name="Loop Unroll Count(0=disable, default=blank) (-unroll [n])" superClass="intel.compilestep.optimization.unrollcnt" value="" valueType="string"/>
 								<option id="intel.compilestep.data.fno-alias.955438835" name="Assume No Aliasing in Program (-fno-alias)" superClass="intel.compilestep.data.fno-alias" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.data.alias_args.1977339082" name="Enable Argument Aliasing (-fargument-alias)" superClass="intel.compilestep.data.alias_args" value="true" valueType="boolean"/>

@@ -551,11 +551,11 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		printf("\n SCF Parameters\n");
 		printf("Virial Error   = %e\n", verr);
 		printf("Omega          = %0.5f Hertz \n", omega);
-		printf("Period         = %0.3f m\n", 2.0 * M_PI / omega/60.0);
+		printf("Period         = %0.3f m\n", 2.0 * M_PI / omega / 60.0);
 		printf("Accretor Mass  = %0.3f Msol\n", m_a / 1.98e+33);
 		printf("Donor Mass     = %0.3f Msol\n", m_d / 1.98e+33);
 		printf("Mass Ratio     = %0.3f\n", m_d / m_a);
-		printf("Separation     = %0.3f M_R\n", (com_d - com_a)/7e+10);
+		printf("Separation     = %0.3f M_R\n", (com_d - com_a) / 7e+10);
 		printf("Center of Mass = %e cm\n", com_x);
 	}
 	get_root()->output("S", iter / 5 + 2, GNX, BW);
@@ -707,17 +707,6 @@ void BinaryStar::run(int argc, char* argv[]) {
 			fprintf(fp, "\n");
 			fclose(fp);
 		}
-#ifdef USE_FMM
-		//	momentum_sum();
-		com_sum();
-#else
-		if (MPI_rank() == 0) {
-			_3Vec com = get_center_of_mass();
-			FILE* fp = fopen("com.dat", "at");
-			fprintf(fp, "%e %e %e %e %e %e %e\n", get_time(), com[0], com[1], com[2], com_vel_correction[0], com_vel_correction[1], com_vel_correction[2]);
-			fclose(fp);
-		}
-#endif
 		//	State::set_drift_tor(((lz_t0 - sum[State::sy_index]) / sum[State::d_index])/dt);
 		Real ofreq = (OUTPUT_TIME_FREQ * (2.0 * M_PI) / State::get_omega());
 //		Real ofreq = (OUTPUT_TIME_FREQ * (2.0 * M_PI) / State::get_omega());
@@ -734,12 +723,17 @@ void BinaryStar::run(int argc, char* argv[]) {
 
 #ifndef USE_FMM
 		_3Vec com = get_center_of_mass();
+#else
+		_3Vec com = system_com();
+#endif
 		Real com_omega = State::get_omega() * 100.0;
 		com_vel_correction -= (com_vel_correction * 2.0 + com * com_omega) * dt * com_omega;
 		State::set_drift_vel(-com_vel_correction);
-#else
-		State::set_drift_vel(_3Vec(0.0));
-#endif
+		if (MPI_rank() == 0) {
+			FILE* fp = fopen("com.dat", "at");
+			fprintf(fp, "%.12e %.12e %.12e %.12e %.12e %.12e %.12e\n", get_time(), com[0], com[1], com[2], com_vel_correction[0], com_vel_correction[1], com_vel_correction[2]);
+			fclose(fp);
+		}
 
 		diagnostics(dt);
 
@@ -820,6 +814,7 @@ void BinaryStar::diagnostics(Real dt) {
 	Real dlz_flow_off = 0.0;
 	Real da;
 	Real etall = 0.0;
+	Real mtot;
 	for (int m = 0; m < get_local_node_cnt(); m++) {
 		b = dynamic_cast<BinaryStar*>(get_local_node(m));
 		dv = pow(b->get_dx(), 3);
@@ -833,6 +828,7 @@ void BinaryStar::diagnostics(Real dt) {
 						x = b->X(i, j, k);
 						etall += u.conserved_energy(x) * dv;
 						//					etall += u.et() * dv;
+						mtot += u.rho() * dv;
 						if (State::cylindrical) {
 							lz += u.sy() * dv;
 //							dlz_hydro += dudt[State::sy_index] * dv;
@@ -908,6 +904,8 @@ void BinaryStar::diagnostics(Real dt) {
 			}
 		}
 	}
+	tmp = mtot;
+	MPI_Allreduce(&tmp, &mtot, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
 	tmp = etall;
 	MPI_Allreduce(&tmp, &etall, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
 	tmp = lz;
@@ -922,11 +920,11 @@ void BinaryStar::diagnostics(Real dt) {
 //	dlz_hydro -= dlz_grav;
 	if (MPI_rank() == get_root()->proc()) {
 		etall += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::et_index];
-		//	etall += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::pot_index];
-		//	lz += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::sy_index];
+		etall += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::pot_index];
+		lz += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::sy_index];
+		mtot += dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::d_index];
 		FILE* fp = fopen("diag.dat", "at");
-		fprintf(fp, "%.12e %.18e %.18e %.18e  %.12e\n", get_time(), lz + get_flow_off()[State::sy_index], etall,
-				dynamic_cast<const BinaryStar*>(get_root())->get_flow_off()[State::pot_index], get_flow_off()[State::d_index]);
+		fprintf(fp, "%.12e %.18e %.18e %.18e \n", get_time(), lz, etall, mtot);
 		fclose(fp);
 	}
 }

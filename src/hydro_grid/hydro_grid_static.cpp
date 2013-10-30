@@ -19,19 +19,19 @@ State HydroGrid::FO0 = Vector<Real, STATE_NF>(0.0);
 State HydroGrid::FO = Vector<Real, STATE_NF>(0.0);
 State HydroGrid::DFO = Vector<Real, STATE_NF>(0.0);
 
-HydroGrid::ifunc_t HydroGrid::es[GRID_ES_SIZE] = { &HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait, &HydroGrid::inject_from_children_send,
-		&HydroGrid::inject_from_children_send_wait,&HydroGrid::sync,&HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
-		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::sync,&HydroGrid::max_dt_compute };
+HydroGrid::ifunc_t HydroGrid::es[GRID_ES_SIZE] = { &HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait,
+		&HydroGrid::inject_from_children_send, &HydroGrid::inject_from_children_send_wait, &HydroGrid::sync, &HydroGrid::flux_bnd_comm,
+		&HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait, &HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait,
+		&HydroGrid::sync, &HydroGrid::max_dt_compute };
 
-HydroGrid::ifunc_t HydroGrid::cs[GRID_CS_SIZE] = {&HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
+HydroGrid::ifunc_t HydroGrid::cs[GRID_CS_SIZE] = { &HydroGrid::flux_bnd_comm, &HydroGrid::physical_boundary, &HydroGrid::flux_bnd_recv_wait,
 		&HydroGrid::flux_bnd_send_wait, &HydroGrid::amr_bnd_send, &HydroGrid::amr_bnd_send_wait, &HydroGrid::flux_compute, &HydroGrid::flux_cf_adjust_recv,
-		&HydroGrid::flux_cf_adjust_recv_wait, &HydroGrid::flux_cf_adjust_send, &HydroGrid::flux_cf_adjust_send_wait, &HydroGrid::sync,&HydroGrid::compute_dudt,
+		&HydroGrid::flux_cf_adjust_recv_wait, &HydroGrid::flux_cf_adjust_send, &HydroGrid::flux_cf_adjust_send_wait, &HydroGrid::sync, &HydroGrid::compute_dudt,
 		&HydroGrid::error_from_parent_recv, &HydroGrid::error_from_parent_recv_wait, &HydroGrid::error_from_parent_send, &HydroGrid::error_from_parent_send_wait,
 		&HydroGrid::compute_update };
 
-HydroGrid::ifunc_t HydroGrid::cs_children[4] = {&HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait, &HydroGrid::inject_from_children_send,
-		&HydroGrid::inject_from_children_send_wait };
-
+HydroGrid::ifunc_t HydroGrid::cs_children[4] = { &HydroGrid::inject_from_children_recv, &HydroGrid::inject_from_children_recv_wait,
+		&HydroGrid::inject_from_children_send, &HydroGrid::inject_from_children_send_wait };
 
 bool HydroGrid::check_for_refine() {
 	inject_from_children();
@@ -92,7 +92,7 @@ void HydroGrid::store() {
 					if (shadow) {
 						g->E0(i, j, k) = Vector<Real, STATE_NF>(0.0);
 					}
-		//			g->U(i, j, k).floor(g->X(i, j, k));
+					//			g->U(i, j, k).floor(g->X(i, j, k));
 					g->U0(i, j, k) = g->U(i, j, k);
 				}
 			}
@@ -224,7 +224,7 @@ void HydroGrid::setup_grid_structure(bool one_iter) {
 		}
 		OctNode::initialize_grids();
 		dt = min(max_dt_driver(), MAXINITDT);
-		if( one_iter ) {
+		if (one_iter) {
 			break;
 		}
 	}
@@ -288,6 +288,16 @@ Real HydroGrid::max_dt_driver() {
 	MPI_Allreduce(&dt, &dt_all, 1, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD );
 	dt = dt_all;
 	return dt;
+}
+
+void HydroGrid::boundary_driver() {
+	Real dt_all, dt;
+	HydroGrid** list = new HydroGrid*[get_local_node_cnt()];
+	for (int i = 0; i < get_local_node_cnt(); i++) {
+		list[i] = dynamic_cast<HydroGrid*>(get_local_node(i));
+	}
+	run_program(list, get_local_node_cnt(), es, GRID_ES_SIZE - 1, 3);
+	delete[] list;
 }
 
 void HydroGrid::mpi_datatypes_initialize() {

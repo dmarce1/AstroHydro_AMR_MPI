@@ -26,7 +26,7 @@ CPP_DEPS += \
 src/single_star/%.o: ../src/single_star/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Compiler '
-	mpic++ -O3 -opt-prefetch=3 -ip -inline-level=2 -I/home/dmarce1/include -DNDEBUG -fp-speculation=fast -fp-model fast=2 -xHost -Wuninitialized -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
+	mpic++ -O3 -opt-prefetch=3 -ipo -inline-level=2 -I/home/dmarce1/include -DNDEBUG -fp-speculation=fast -fp-model fast=2 -xHost -Wuninitialized -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

@@ -115,7 +115,8 @@ public:
 #ifdef USE_FMM_ANGULAR
 	Real g_lz(int i, int j, int k) const;
 #endif
-	Real gy(int i, int j, int k) const;
+	static _3Vec system_com();
+		Real gy(int i, int j, int k) const;
 	Real gz(int i, int j, int k) const;
 	Real g_energy(int i, int j, int k) const;
 	virtual void compute_update(int dir);

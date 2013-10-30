@@ -441,7 +441,7 @@ void HydroGrid::flux_physical_bounds(int dir) {
 				} else {
 					(Fv[dir](i))[l] = max(0.0, (Fv[dir](i))[l]);
 				}
-				(Fv[dir](i))[l] = 0.0;
+	//			(Fv[dir](i))[l] = 0.0;
 			}
 		}
 	}
@@ -457,7 +457,7 @@ void HydroGrid::flux_physical_bounds(int dir) {
 				} else {
 					(Fv[dir](i))[l] = min(0.0, (Fv[dir](i))[l]);
 				}
-				(Fv[dir](i))[l] = 0.0;
+		//		(Fv[dir](i))[l] = 0.0;
 			}
 		}
 	}

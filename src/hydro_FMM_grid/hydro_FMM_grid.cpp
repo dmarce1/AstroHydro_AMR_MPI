@@ -102,7 +102,7 @@ void HydroFMMGrid::moments_recv(int) {
 						poles(i, j, k).X[0] = xc(i + BW - FBW);
 						poles(i, j, k).X[1] = yc(j + BW - FBW);
 						poles(i, j, k).X[2] = zc(k + BW - FBW);
-						poles(i, j, k).M() = (*this)(i + BW - FBW, j + BW - FBW, k + BW - FBW).rho() * dv;
+						poles(i, j, k).M() = ((*this)(i + BW - FBW, j + BW - FBW, k + BW - FBW).rho() - State::rho_floor) * dv;
 						poles(i, j, k).is_leaf = true;
 					}
 				}
@@ -914,7 +914,7 @@ void HydroFMMGrid::step(Real dt) {
 	HydroGrid::set_dt(dt);
 	store();
 	store_pot();
-	for (int i = 0; i <2; i++) {
+	for (int i = 0; i < 2; i++) {
 
 		HydroGrid::set_beta(beta[i]);
 		start_time = MPI_Wtime();
@@ -923,6 +923,7 @@ void HydroFMMGrid::step(Real dt) {
 		update();
 		FMM_solve();
 		account_pot();
+		//floor_density();
 		//	max_dt_driver();
 	}
 	FMM_from_children();
@@ -997,7 +998,7 @@ void HydroFMMGrid::update() {
 			for (int j = BW; j < GNX - BW; j++) {
 				for (int i = BW; i < GNX - BW; i++) {
 					_3Vec x = g0->X(i, j, k);
-					Real d = (*g0)(i, j, k).rho();
+					Real d = (*g0)(i, j, k).rho() - State::rho_floor;
 					Real R = sqrt(x[0] * x[0] + x[1] * x[1]);
 					g0->D(i, j, k)[State::sy_index] += d * g0->g_lz(i, j, k);
 					g0->D(i, j, k)[State::sx_index] += d * (x[0] * g0->gx(i, j, k) + x[1] * g0->gy(i, j, k)) / R;
@@ -1017,6 +1018,43 @@ void HydroFMMGrid::update() {
 			}
 		}
 	}
+}
+
+_3Vec HydroFMMGrid::system_com() {
+	HydroFMMGrid* g0;
+	Real send[4], recv[4];
+	_3Vec rc;
+	Real mtot, mx, my, mz;
+	mtot = mx = my = mz = 0.0;
+	for (int n = 0; n < get_local_node_cnt(); n++) {
+		g0 = dynamic_cast<HydroFMMGrid*>(get_local_node(n));
+		if (g0->get_level() == 0) {
+			for (int k = BW; k < GNX - BW; k++) {
+				for (int j = BW; j < GNX - BW; j++) {
+					for (int i = BW; i < GNX - BW; i++) {
+						Real m = g0->poles(i, j, k).M();
+						mx += g0->poles(i, j, k).X[0] * m;
+						my += g0->poles(i, j, k).X[1] * m;
+						mz += g0->poles(i, j, k).X[2] * m;
+						mtot += m;
+					}
+				}
+			}
+		}
+	}
+	send[0] = mtot;
+	send[1] = mx;
+	send[2] = my;
+	send[3] = mz;
+	MPI_Allreduce(send, recv, 4, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD );
+	mtot = recv[0];
+	mx = recv[1];
+	my = recv[2];
+	mz = recv[3];
+	rc[0] = mx / mtot;
+	rc[1] = my / mtot;
+	rc[2] = mz / mtot;
+	return rc;
 }
 
 void HydroFMMGrid::to_conserved_energy() {
@@ -1119,6 +1157,8 @@ Vector<Real, 4> HydroFMMGrid::com_sum() {
 	Real sum[4];
 	sum[0] = sum[1] = sum[2] = sum[3] = 0.0;
 	Real norm = 0.0;
+	const Real floor = State::rho_floor;
+	Real d;
 	for (int n = 0; n < get_local_node_cnt(); n++) {
 		g0 = dynamic_cast<HydroFMMGrid*>(get_local_node(n));
 		const Real dv = pow(g0->get_dx(), 3);
@@ -1126,10 +1166,11 @@ Vector<Real, 4> HydroFMMGrid::com_sum() {
 			for (int j = BW; j < GNX - BW; j++) {
 				for (int i = BW; i < GNX - BW; i++) {
 					if (!g0->zone_is_refined(i, j, k)) {
-						sum[0] += (*g0)(i, j, k).rho() * dv * g0->xc(i);
-						sum[1] += (*g0)(i, j, k).rho() * dv * g0->yc(j);
-						sum[2] += (*g0)(i, j, k).rho() * dv * g0->zc(k);
-						sum[3] += (*g0)(i, j, k).rho() * dv;
+						d = (*g0)(i, j, k).rho() - floor;
+						sum[0] += d * dv * g0->xc(i);
+						sum[1] += d * dv * g0->yc(j);
+						sum[2] += d * dv * g0->zc(k);
+						sum[3] += d * dv;
 					}
 				}
 			}

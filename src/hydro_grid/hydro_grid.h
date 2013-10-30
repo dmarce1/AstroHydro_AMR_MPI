@@ -20,6 +20,8 @@
 #endif
 
 class HydroGrid: public virtual OctNode, public VirtualProcess<HydroGrid> {
+protected:
+	static  void floor_density();
 private:
 	static _3Vec origin;
 	static bool shadow;
@@ -133,6 +135,7 @@ protected:
 	static void redistribute_grids();
 	static void shadow_off();
 	static Real max_dt_driver();
+	static void boundary_driver();
 	bool zone_is_refined(int, int, int) const;
 	static void setup_grid_structure(bool=false);
 	static Real next_dt(bool* do_output, bool* last_step, int*, Real freq = OUTPUT_TIME_FREQ);

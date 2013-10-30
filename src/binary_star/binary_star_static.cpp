@@ -726,7 +726,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 #else
 		_3Vec com = system_com();
 #endif
-		Real com_omega = State::get_omega() * 100.0;
+		Real com_omega = State::get_omega() * 200.0;
 		com_vel_correction -= (com_vel_correction * 2.0 + com * com_omega) * dt * com_omega;
 		State::set_drift_vel(-com_vel_correction);
 		if (MPI_rank() == 0) {

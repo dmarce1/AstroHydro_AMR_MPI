@@ -10,7 +10,6 @@
 #include "../tag.h"
 #include <mpi.h>
 
-
 #define XLYL 0
 #define XLYU 1
 #define XLZL 2
@@ -941,7 +940,6 @@ bool HydroFMMGrid::check_for_refine() {
 	if (rc) {
 		pot_to_hydro_grid();
 		HydroGrid::redistribute_grids();
-		int count = OctNode::get_local_node_cnt();
 		FMM_solve();
 		FMM_from_children();
 	}
@@ -1286,22 +1284,27 @@ void HydroFMMGrid::find_neighbors() {
 		int k = ((i & 2) >> 1) + YL;
 		int j = ((i & 4) >> 2) + XL;
 		corners[i] = NULL;
-		if (get_sibling(j) != NULL) {
-			if (get_sibling(j)->get_sibling(k) != NULL) {
+		if (get_sibling(j) != NULL && corners[i] == NULL) {
+			if (get_sibling(j)->get_sibling(k) != NULL && corners[i] == NULL) {
 				corners[i] = get_sibling(j)->get_sibling(k)->get_sibling(l);
-			} else if (get_sibling(j)->get_sibling(l) != NULL) {
+			}
+			if (get_sibling(j)->get_sibling(l) != NULL && corners[i] == NULL) {
 				corners[i] = get_sibling(j)->get_sibling(l)->get_sibling(k);
 			}
-		} else if (get_sibling(k) != NULL) {
-			if (get_sibling(k)->get_sibling(j) != NULL) {
+		}
+		if (get_sibling(k) != NULL && corners[i] == NULL) {
+			if (get_sibling(k)->get_sibling(j) != NULL && corners[i] == NULL) {
 				corners[i] = get_sibling(k)->get_sibling(j)->get_sibling(l);
-			} else if (get_sibling(k)->get_sibling(l) != NULL) {
+			}
+			if (get_sibling(k)->get_sibling(l) != NULL && corners[i] == NULL) {
 				corners[i] = get_sibling(k)->get_sibling(l)->get_sibling(j);
 			}
-		} else if (get_sibling(l) != NULL) {
-			if (get_sibling(l)->get_sibling(j) != NULL) {
+		}
+		if (get_sibling(l) != NULL && corners[i] == NULL) {
+			if (get_sibling(l)->get_sibling(j) != NULL && corners[i] == NULL) {
 				corners[i] = get_sibling(l)->get_sibling(j)->get_sibling(k);
-			} else if (get_sibling(l)->get_sibling(k) != NULL) {
+			}
+			if (get_sibling(l)->get_sibling(k) != NULL && corners[i] == NULL) {
 				corners[i] = get_sibling(l)->get_sibling(k)->get_sibling(j);
 			}
 		}

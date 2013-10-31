@@ -4,7 +4,7 @@
 #ifdef HYDRO_GRAV_GRID
 #ifdef BINARY_STAR
 
-#define CHECKPT_FREQ 100
+#define CHECKPT_FREQ 50
 
 //static Real MA = 1.04;
 //static Real MD = 0.20;

@@ -10,11 +10,6 @@
 #include "../tag.h"
 #include <mpi.h>
 
-#define TAG_MOMENT 1
-#define TAG_4FORCE 5
-#define TAG_BOUND 2
-#define TAG_EXPANSION 3
-#define TAG_EXPANSION2 4
 
 #define XLYL 0
 #define XLYU 1
@@ -86,7 +81,7 @@ void HydroFMMGrid::moments_recv(int) {
 	for (ChildIndex ci = 0; ci < 8; ci++) {
 		child = dynamic_cast<HydroFMMGrid*>(get_child(ci));
 		if (child != NULL) {
-			tag = tag_gen(TAG_MOMENT, get_id(), ci);
+			tag = tag_gen(TAG_FMM_MOMENT, get_id(), ci);
 			MPI_Irecv(poles.ptr(), 1, MPI_comm_child_poles_t[ci], get_child(ci)->proc(), tag, MPI_COMM_WORLD, recv_request + ci);
 		} else {
 			recv_request[ci] = MPI_REQUEST_NULL;
@@ -127,7 +122,7 @@ void HydroFMMGrid::moments_recv_dot(int) {
 	for (ChildIndex ci = 0; ci < 8; ci++) {
 		child = dynamic_cast<HydroFMMGrid*>(get_child(ci));
 		if (child != NULL) {
-			tag = tag_gen(TAG_MOMENT, get_id(), ci);
+			tag = tag_gen(TAG_FMM_MOMENT, get_id(), ci);
 			MPI_Irecv(poles_dot.ptr(), 1, MPI_comm_child_poles_dot_t[ci], get_child(ci)->proc(), tag, MPI_COMM_WORLD, recv_request + ci);
 		} else {
 			recv_request[ci] = MPI_REQUEST_NULL;
@@ -209,7 +204,7 @@ void HydroFMMGrid::moments_send(int) {
 				}
 			}
 		}assert(cnt==INX * INX * INX / 8);
-		int tag = tag_gen(TAG_MOMENT, get_parent()->get_id(), my_child_index());
+		int tag = tag_gen(TAG_FMM_MOMENT, get_parent()->get_id(), my_child_index());
 		MPI_Isend(moment_buffer, cnt * sizeof(multipole_t), MPI_BYTE, get_parent()->proc(), tag, MPI_COMM_WORLD, send_request);
 	}
 	inc_instruction_pointer();
@@ -242,7 +237,7 @@ void HydroFMMGrid::moments_send_dot(int) {
 				}
 			}
 		}assert(cnt==INX * INX * INX / 8);
-		int tag = tag_gen(TAG_MOMENT, get_parent()->get_id(), my_child_index());
+		int tag = tag_gen(TAG_FMM_MOMENT, get_parent()->get_id(), my_child_index());
 		MPI_Isend(moment_dot_buffer, cnt * sizeof(multipole_dot_t), MPI_BYTE, get_parent()->proc(), tag, MPI_COMM_WORLD, send_request);
 	}
 	inc_instruction_pointer();
@@ -284,8 +279,8 @@ void HydroFMMGrid::moments_communicate_all(int) {
 			send_request[dir] = MPI_REQUEST_NULL;
 		} else {
 			assert(dir==face_id[dir]);
-			tag_send = tag_gen(TAG_BOUND, neighbor->get_id(), face_opp_id[dir]);
-			tag_recv = tag_gen(TAG_BOUND, get_id(), face_id[dir]);
+			tag_send = tag_gen(TAG_FMM_BOUND, neighbor->get_id(), face_opp_id[dir]);
+			tag_recv = tag_gen(TAG_FMM_BOUND, get_id(), face_id[dir]);
 			MPI_Isend(poles.ptr(), 1, MPI_send_bnd_t[dir], neighbor->proc(), tag_send, MPI_COMM_WORLD, send_request + dir);
 			MPI_Irecv(poles.ptr(), 1, MPI_recv_bnd_t[dir], neighbor->proc(), tag_recv, MPI_COMM_WORLD, recv_request + dir);
 		}
@@ -304,8 +299,8 @@ void HydroFMMGrid::moments_communicate_all_dot(int) {
 			send_request[dir] = MPI_REQUEST_NULL;
 		} else {
 			assert(dir==face_id[dir]);
-			tag_send = tag_gen(TAG_BOUND, neighbor->get_id(), face_opp_id[dir]);
-			tag_recv = tag_gen(TAG_BOUND, get_id(), face_id[dir]);
+			tag_send = tag_gen(TAG_FMM_BOUND, neighbor->get_id(), face_opp_id[dir]);
+			tag_recv = tag_gen(TAG_FMM_BOUND, get_id(), face_id[dir]);
 			MPI_Isend(poles_dot.ptr(), 1, MPI_send_bnd_dot_t[dir], neighbor->proc(), tag_send, MPI_COMM_WORLD, send_request + dir);
 			MPI_Irecv(poles_dot.ptr(), 1, MPI_recv_bnd_dot_t[dir], neighbor->proc(), tag_recv, MPI_COMM_WORLD, recv_request + dir);
 		}
@@ -512,7 +507,7 @@ void HydroFMMGrid::expansion_recv(int) {
 		const HydroFMMGrid* p = dynamic_cast<const HydroFMMGrid*>(get_parent());
 		int i, j, k, sz, tag;
 		Real a;
-		tag = tag_gen(TAG_EXPANSION, get_id(), ci);
+		tag = tag_gen(TAG_FMM_EXPANSION, get_id(), ci);
 		taylor_buffer = new taylor_t[INX * INX * INX / 8];
 		MPI_Irecv(taylor_buffer, INX * INX * INX * sizeof(taylor_t) / 8, MPI_BYTE, p->proc(), tag, MPI_COMM_WORLD, recv_request + 0);
 	}
@@ -578,7 +573,7 @@ void HydroFMMGrid::expansion_send(int) {
 				}
 			}
 		} else {
-			tag = tag_gen(TAG_EXPANSION, child->get_id(), ci);
+			tag = tag_gen(TAG_FMM_EXPANSION, child->get_id(), ci);
 			MPI_Isend(L.ptr(), 1, MPI_comm_taylor_t[ci], child->proc(), tag, MPI_COMM_WORLD, send_request + ci);
 		}
 	}
@@ -592,7 +587,7 @@ void HydroFMMGrid::expansion_recv_dot(int) {
 		const HydroFMMGrid* p = dynamic_cast<const HydroFMMGrid*>(get_parent());
 		int i, j, k, sz, tag;
 		Real a;
-		tag = tag_gen(TAG_EXPANSION, get_id(), ci);
+		tag = tag_gen(TAG_FMM_EXPANSION, get_id(), ci);
 		taylor_dot_buffer = new taylor_dot_t[INX * INX * INX / 8];
 		MPI_Irecv(taylor_dot_buffer, INX * INX * INX * sizeof(taylor_dot_t) / 8, MPI_BYTE, p->proc(), tag, MPI_COMM_WORLD, recv_request + 0);
 	}
@@ -645,7 +640,7 @@ void HydroFMMGrid::expansion_send_dot(int) {
 		if (child == NULL) {
 			send_request[ci] = MPI_REQUEST_NULL;
 		} else {
-			tag = tag_gen(TAG_EXPANSION, child->get_id(), ci);
+			tag = tag_gen(TAG_FMM_EXPANSION, child->get_id(), ci);
 			MPI_Isend(L_dot.ptr(), 1, MPI_comm_taylor_dot_t[ci], child->proc(), tag, MPI_COMM_WORLD, send_request + ci);
 		}
 	}
@@ -655,7 +650,7 @@ void HydroFMMGrid::expansion_send_dot(int) {
 
 void HydroFMMGrid::expansion_send_wait(int) {
 	int flag;
-	MPI_Testall(16, send_request, &flag, MPI_STATUS_IGNORE );
+	MPI_Testall(8, send_request, &flag, MPI_STATUS_IGNORE );
 	if (flag) {
 		inc_instruction_pointer();
 	}
@@ -813,9 +808,12 @@ void HydroFMMGrid::_4force_recv(int) {
 	const Real dv = pow(get_dx(), 3);
 	for (ChildIndex ci = 0; ci < 8; ci++) {
 		child = dynamic_cast<HydroFMMGrid*>(get_child(ci));
+
 		if (child != NULL) {
-			tag = tag_gen(TAG_4FORCE, get_id(), ci);
+			tag = tag_gen(TAG_FMM_4FORCE, get_id(), ci);
 			MPI_Irecv(_4force.ptr(), 1, MPI_comm_child3_t[ci], get_child(ci)->proc(), tag, MPI_COMM_WORLD, recv_request + ci);
+		} else {
+			recv_request[ci] = MPI_REQUEST_NULL;
 		}
 	}
 	inc_instruction_pointer();
@@ -856,7 +854,7 @@ void HydroFMMGrid::_4force_send(int) {
 				}
 			}
 		}assert(cnt==INX * INX * INX / 8);
-		int tag = tag_gen(TAG_4FORCE, get_parent()->get_id(), my_child_index());
+		int tag = tag_gen(TAG_FMM_4FORCE, get_parent()->get_id(), my_child_index());
 		MPI_Isend(_4force_buffer, cnt * sizeof(_4force_t), MPI_BYTE, get_parent()->proc(), tag, MPI_COMM_WORLD, send_request);
 	}
 	inc_instruction_pointer();

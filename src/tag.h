@@ -21,7 +21,11 @@
 #define TAG_C2P    10
 #define TAG_ERROR  11
 #define TAG_PHIFACE 12
-#define TAG_MAX    13
+#define TAG_FMM_MOMENT 13
+#define TAG_FMM_4FORCE 14
+#define TAG_FMM_BOUND 15
+#define TAG_FMM_EXPANSION 16
+#define TAG_MAX    17
 #define SUBCYCLEMAX 16
 
 int tag_gen( int fid, int gid, int face, int subcycle = 0 );

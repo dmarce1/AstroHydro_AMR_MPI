@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lbfd -lgfortran -lsilo -lifcore -liso7
+LIBS := -lbfd -lgfortran -liberty -lifport -lsilo -lifcore -liso7
 

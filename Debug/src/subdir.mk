@@ -59,4 +59,11 @@ src/%.o: ../src/%.c
 	@echo 'Finished building: $<'
 	@echo ' '
 
+src/reconstruct.o: ../src/reconstruct.cpp
+	@echo 'Building file: $<'
+	@echo 'Invoking: Intel Intel(R) 64 C++ Compiler '
+	mpic++ -g -I/home/dmarce1/include -MMD -MP -MF"$(@:%.o=%.d)" -MT"src/reconstruct.d" -c -o "$@" "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
 

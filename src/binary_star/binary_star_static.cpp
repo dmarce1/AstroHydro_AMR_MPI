@@ -554,7 +554,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	max_dt_driver();
 	Real verr = dynamic_cast<BinaryStar*>(get_root())->virial_error();
 	if (MPI_rank() == 0) {
-		FILE* fp = fopen( "scf.dat", "wt");
+		FILE* fp = fopen("scf.dat", "wt");
 		fprintf(fp, "\n SCF Parameters\n");
 		fprintf(fp, "Virial Error   = %e\n", verr);
 		fprintf(fp, "Omega          = %0.5f Hertz \n", omega);
@@ -565,18 +565,19 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 		fprintf(fp, "Separation     = %0.3f M_R\n", (com_d - com_a) / 7e+10);
 		fprintf(fp, "Center of Mass = %e cm\n", com_x);
 		fclose(fp);
-		system( "cat scf.dat\n");
+		system("cat scf.dat\n");
 	}
 	get_root()->output("S", iter / 5 + 2, GNX, BW);
+	if (MPI_rank() == 0) {
+		system("mkdir checkpoint\n");
+	}
 	write_to_file(0, 0, "init");
-	if( MPI_rank() == 0 ) {
-		system( "mkdir output\n" );
-		system( "mkdir checkpoint\n" );
-		system( "mkdir scf\n" );
-		system( "cp checkpoint.init.*.bin ./scf\n");
-		system( "mv S.*.silo ./scf\n");
-		system( "mv scf.dat ./scf\n");
-		system( "mv checkpoint.init.*.bin ./checkpoint\n");
+	if (MPI_rank() == MPI_size() - 1) {
+		system("mkdir output\n");
+		system("mkdir scf\n");
+		system("cp ./checkpoint/init.*.bin ./scf\n");
+		system("mv S.*.silo ./scf\n");
+		system("mv scf.dat ./scf\n");
 	}
 }
 

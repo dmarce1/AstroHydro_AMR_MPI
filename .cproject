@@ -49,6 +49,8 @@
 							<tool id="intel.c.linkstep.linux.x86_64.exe.rel.299900819_11.1.0" name="Intel Intel(R) 64 C Linker" superClass="intel.c.linkstep.linux.x86_64.exe.rel_11.1.0">
 								<option id="intel.linkstep.libname.1499692648" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
 									<listOptionValue builtIn="false" value="bfd"/>
+									<listOptionValue builtIn="false" value="iberty"/>
+									<listOptionValue builtIn="false" value="ifport"/>
 									<listOptionValue builtIn="false" value="silo"/>
 									<listOptionValue builtIn="false" value="ifcore"/>
 									<listOptionValue builtIn="false" value="iso7"/>
@@ -61,6 +63,8 @@
 							<tool command="mpic++" id="intel.cpp.linkstep.linux.x86_64.exe.rel.1566567523_11.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.rel_11.1.0">
 								<option id="intel.linkstep.libname.812047217" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
 									<listOptionValue builtIn="false" value="bfd"/>
+									<listOptionValue builtIn="false" value="iberty"/>
+									<listOptionValue builtIn="false" value="ifport"/>
 									<listOptionValue builtIn="false" value="silo"/>
 									<listOptionValue builtIn="false" value="ifcore"/>
 									<listOptionValue builtIn="false" value="iso7"/>
@@ -79,6 +83,19 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="intel.linux.x86_64.exe.rel.416340396.1517644244_11.1.0" name="reconstruct.cpp" rcbsApplicability="disable" resourcePath="src/reconstruct.cpp" toolsToInvoke="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548.438083666_11.1.0">
+						<tool id="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548.438083666_11.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548_11.1.0">
+							<option id="intel.compilestep.optimization.ipo.1418239161" superClass="intel.compilestep.optimization.ipo" value="false" valueType="boolean"/>
+							<option id="intel.compilestep.optimization.ip.1512622921" superClass="intel.compilestep.optimization.ip" value="true" valueType="boolean"/>
+							<inputType id="intel.cpp.compilestep.input.1370583873" superClass="intel.cpp.compilestep.input"/>
+						</tool>
+						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1187635739" name="Resource Custom Build Step">
+							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.1094456567" name="Resource Custom Build Step Input Type">
+								<additionalInput kind="additionalinputdependency" paths=""/>
+							</inputType>
+							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.654406692" name="Resource Custom Build Step Output Type"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="iso7_src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -113,6 +130,8 @@
 							<tool id="intel.c.linkstep.linux.x86_64.exe.dbg.1786024394_11.1.0" name="Intel Intel(R) 64 C Linker" superClass="intel.c.linkstep.linux.x86_64.exe.dbg_11.1.0">
 								<option id="intel.linkstep.libname.1885426694" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
 									<listOptionValue builtIn="false" value="bfd"/>
+									<listOptionValue builtIn="false" value="iberty"/>
+									<listOptionValue builtIn="false" value="ifport"/>
 									<listOptionValue builtIn="false" value="silo"/>
 									<listOptionValue builtIn="false" value="ifcore"/>
 									<listOptionValue builtIn="false" value="iso7"/>
@@ -126,6 +145,8 @@
 								<option id="intel.linkstep.libname.957309016" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
 									<listOptionValue builtIn="false" value="bfd"/>
 									<listOptionValue builtIn="false" value="gfortran"/>
+									<listOptionValue builtIn="false" value="iberty"/>
+									<listOptionValue builtIn="false" value="ifport"/>
 									<listOptionValue builtIn="false" value="silo"/>
 									<listOptionValue builtIn="false" value="ifcore"/>
 									<listOptionValue builtIn="false" value="iso7"/>
@@ -141,6 +162,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="intel.linux.x86_64.exe.dbg.1427174046.40313392_11.1.0" name="reconstruct.cpp" rcbsApplicability="disable" resourcePath="src/reconstruct.cpp" toolsToInvoke="intel.cpp.compilestep.linux.x86_64.exe.dbg.1756184793.1362477853_11.1.0">
+						<tool id="intel.cpp.compilestep.linux.x86_64.exe.dbg.1756184793.1362477853_11.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.dbg.1756184793_11.1.0">
+							<inputType id="intel.cpp.compilestep.input.1633413188" superClass="intel.cpp.compilestep.input"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="iso7_src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>

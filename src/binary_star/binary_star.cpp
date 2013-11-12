@@ -82,6 +82,13 @@ Real BinaryStar::radius(int i, int j, int k) {
 }
 void BinaryStar::set_refine_flags() {
 	double refine_adjustment = 1.0;
+	if (get_time() != 0.0) {
+		if (get_node_cnt() > preferred_node_count * 2) {
+			refine_floor *= 1.1;
+		} else if (get_node_cnt() < preferred_node_count / 2) {
+			refine_floor /= 1.1;
+		}
+	}
 	ChildIndex c;
 	if (get_level() < 1) {
 		for (int i = 0; i < OCT_NCHILD; i++) {
@@ -101,7 +108,7 @@ void BinaryStar::set_refine_flags() {
 #ifdef REFINE_ACC_MORE
 					if ((get_level() == get_max_level_allowed() - 1 && (*this)(i, j, k).frac(0) > refine_floor) || get_level() < get_max_level_allowed() - 1) {
 #else
-					if (get_level() < get_max_level_allowed()) {
+						if (get_level() < get_max_level_allowed()) {
 #endif
 						if (!get_refine_flag(c)) {
 							//              set_refine_flag(c, true);

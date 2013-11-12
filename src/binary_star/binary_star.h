@@ -22,6 +22,7 @@ public:
 	class BinaryStar: public HydroGravGrid {
 #endif
 private:
+	static int preferred_node_count;
 	static Real refine_floor;
 	static Real code_to_cm, code_to_s, code_to_K, code_to_g;
 	static Real lz_t0;
@@ -114,8 +115,10 @@ public:
 		case 10:
 			return gz(i, j, k);
 		case 11:
-			return (*this)(i, j, k).pg(this->X(i, j, k));
+			return glz(i, j, k);
 		case 12:
+			return (*this)(i, j, k).pg(this->X(i, j, k));
+		case 13:
 			return (*this)(i, j, k).ei(this->X(i, j, k)) + (*this)(i, j, k).ed();
 		}
 #endif
@@ -147,14 +150,16 @@ public:
 		case 10:
 			return "gz";
 		case 11:
-			return "p";
+			return "glz";
 		case 12:
+			return "p";
+		case 13:
 			return "e_gas";
 		} assert(false);
 		return "";
 	}
 	virtual int nvar_output() const {
-		return 13;
+		return 14;
 	}
 };
 #endif

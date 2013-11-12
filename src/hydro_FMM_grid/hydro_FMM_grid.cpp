@@ -402,7 +402,7 @@ void HydroFMMGrid::compute_interactions(int) {
 				const _3Vec R = n1->X;
 				for (int a = 0; a < 2; a++) {
 					const int b = 1 - a;
-					const Real eps = Real(2 * b - 1);
+					const Real eps = -Real(2 * b - 1);
 					l->g_lz() -= eps * R[a] * l->phi(b);
 					for (int m = 0; m < 3; m++) {
 						l->g_lz(m) -= eps * (+delta[a][m] * l->phi(b) + R[a] * l->phi(b, m));

@@ -18,9 +18,10 @@
 #define GRID_CFL_FACTOR     (1.0/3.0)
 #define MAXINITDT           (1.0e-5)
 #define ZTWD
-#define DRIVING			    0.01
-#define DRIVING_TIME		1.0
+#define DRIVING			    0.00
+#define DRIVING_TIME		0.0
 //#define NGRID_LIMIT         1000
+#define REFINE_ACC_MORE
 
 #define  RANK_ZERO_HAS_ONE_GRID
 #endif

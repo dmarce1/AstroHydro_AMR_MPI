@@ -4,7 +4,7 @@
 #ifdef HYDRO_GRAV_GRID
 #ifdef BINARY_STAR
 
-#define CHECKPT_FREQ 50
+#define CHECKPT_FREQ 100
 
 //static Real MA = 1.04;
 //static Real MD = 0.20;
@@ -20,6 +20,7 @@ Real BinaryStar::Ax, BinaryStar::Bx, BinaryStar::Cx, BinaryStar::Aphi, BinarySta
 _3Vec BinaryStar::a0, BinaryStar::d0, BinaryStar::com_vel_correction = 0.0;
 Real BinaryStar::lz_t0 = 0.0;
 Real BinaryStar::code_to_cm, BinaryStar::code_to_s, BinaryStar::code_to_K, BinaryStar::code_to_g;
+int BinaryStar::preferred_node_count;
 
 void BinaryStar::assign_fracs(Real Hfrac, Real min_phi, Real max_phi) {
 	BinaryStar* g;
@@ -378,7 +379,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	_3Vec XC_d, XC_a;
 	Real rho0_d, tmp, h0_a, h0_d, h;
 	Real xm_d, xp_d, phip_d, phi0_a, omega, C_a, C_d, new_rho, o2;
-	const Real w = 0.9;
+	const Real w = 0.75;
 	Real m_a, com_a, m_d, com_d, l1_phi, l1_x;
 	Real com_x, last_com_x, last_w0, w0;
 
@@ -571,6 +572,7 @@ void BinaryStar::scf_run(int argc, char* argv[]) {
 	if (MPI_rank() == 0) {
 		system("mkdir checkpoint\n");
 	}
+	preferred_node_count = get_node_cnt();
 	write_to_file(0, 0, "init");
 	if (MPI_rank() == MPI_size() - 1) {
 		system("mkdir output\n");
@@ -607,6 +609,7 @@ void BinaryStar::read_from_file(const char* str, int* i1, int* i2) {
 	fread(&last_dt, sizeof(Real), 1, fp);
 	fread(i1, sizeof(int), 1, fp);
 	fread(i2, sizeof(int), 1, fp);
+	fread(&preferred_node_count, sizeof(int), 1, fp);
 	get_root()->read_checkpoint(fp);
 	fclose(fp);
 	State::set_omega(omega);
@@ -648,6 +651,7 @@ void BinaryStar::write_to_file(int i1, int i2, const char* idname) {
 	fwrite(&last_dt, sizeof(Real), 1, fp);
 	fwrite(&i1, sizeof(int), 1, fp);
 	fwrite(&i2, sizeof(int), 1, fp);
+	fwrite(&preferred_node_count, sizeof(int), 1, fp);
 	get_root()->write_checkpoint(fp);
 	fclose(fp);
 	if (MPI_rank() < MPI_size() - 1) {
@@ -697,7 +701,7 @@ void BinaryStar::run(int argc, char* argv[]) {
 	set_poisson_tolerance(1.0e-10);
 #endif
 	if (MPI_rank() == 0) {
-		printf("Beginning evolution with period = %e, omega = %e\n", 2.0 * M_PI / State::get_omega(), State::get_omega());
+		printf("Initial period = %e, initial omega = %e, current refine_floor = %e\n", 2.0 * M_PI / State::get_omega(), State::get_omega(), refine_floor);
 	}
 #ifndef USE_FMM
 	hydro_time = poisson_boundary_time = poisson_interior_time = 0.0;

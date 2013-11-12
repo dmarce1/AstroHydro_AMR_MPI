@@ -5,7 +5,7 @@
 //#define BLAST_WAVE
 //#define SOD
 //#define POISSON_TEST
-//#define SINGLE_STAR
+//#define SINGLE_STARB
 #define BINARY_STAR
 //#define FMM_TEST
 //#define RADIATION_TEST

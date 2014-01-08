@@ -876,6 +876,7 @@ void MultiGrid::residual_error_compute(int) {
 		}
 	}
 	inc_instruction_pointer();
+//	printf( "\t \t \t%e\n", sum);
 	st0 = sum;
 }
 

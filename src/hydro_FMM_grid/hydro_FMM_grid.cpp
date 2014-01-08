@@ -9,6 +9,7 @@
 #ifdef USE_FMM
 #include "../tag.h"
 #include <mpi.h>
+#include <omp.h>
 
 #define XLYL 0
 #define XLYU 1
@@ -333,6 +334,12 @@ void HydroFMMGrid::compute_interactions(int) {
 			}
 		}
 	}
+	if (MPI_rank() == 0) {
+		omp_set_num_threads(11);
+	} else {
+		omp_set_num_threads(1);
+	}
+#pragma omp parallel for private(xlb,ylb,zlb,xub,yub,zub,n1,l1,n2) collapse(2)
 	for (int k0 = FBW; k0 < FNX - FBW; k0++) {
 		for (int j0 = FBW; j0 < FNX - FBW; j0++) {
 			for (int i0 = FBW; i0 < FNX - FBW; i0++) {
@@ -402,7 +409,7 @@ void HydroFMMGrid::compute_interactions(int) {
 				const _3Vec R = n1->X;
 				for (int a = 0; a < 2; a++) {
 					const int b = 1 - a;
-					const Real eps = -Real(2 * b - 1);
+					const Real eps = Real(2 * b - 1);
 					l->g_lz() -= eps * R[a] * l->phi(b);
 					for (int m = 0; m < 3; m++) {
 						l->g_lz(m) -= eps * (+delta[a][m] * l->phi(b) + R[a] * l->phi(b, m));
@@ -906,12 +913,12 @@ void HydroFMMGrid::null(int) {
 void HydroFMMGrid::step(Real dt) {
 	Real start_time;
 //	Real beta[1] = { 1.0 };
-	Real beta[2] = { 1.0, 0.5 };
-//	Real beta[3] = { 1.0, 0.25, 2.0 / 3.0 };
+//	Real beta[2] = { 1.0, 0.5 };
+	Real beta[3] = { 1.0, 0.25, 2.0 / 3.0 };
 	HydroGrid::set_dt(dt);
 	store();
 	store_pot();
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 3; i++) {
 
 		HydroGrid::set_beta(beta[i]);
 		start_time = MPI_Wtime();

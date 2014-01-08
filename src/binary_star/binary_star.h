@@ -15,14 +15,13 @@
 #ifdef HYDRO_GRAV_GRID
 #ifdef USE_FMM
 class BinaryStar: public HydroFMMGrid {
+#else
+class BinaryStar: public HydroGravGrid {
+#endif
 public:
 	static binary_parameters_t bparam;
 	static bool bparam_init;
-#else
-	class BinaryStar: public HydroGravGrid {
-#endif
 private:
-	static int preferred_node_count;
 	static Real refine_floor;
 	static Real code_to_cm, code_to_s, code_to_K, code_to_g;
 	static Real lz_t0;
@@ -36,11 +35,13 @@ private:
 	virtual void set_refine_flags();
 	Real radius(int i, int j, int k);
 	static void assign_fracs(Real donor_frac, Real min_phi, Real max_phi);
-	static void find_l(Real m1_x, Real m2_x, Real* l1_phi, Real* l1_x, int lnum);
+	static void find_l(Real m1_x, Real m2_x, Real* l1_phi, Real* l1_x,
+			int lnum);
 	static void next_omega(Real phi0);
 	static Real virial_error();
 	static Real find_acc_com();
-	static void find_phimins(Real* phi_min_a, Real* a_x, Real* phi_min_d, Real* d_x);
+	static void find_phimins(Real* phi_min_a, Real* a_x, Real* phi_min_d,
+			Real* d_x);
 	static Real Ax, Bx, Cx, Aphi, Bphi, Cphi;
 	static void find_rho_max(Real* rho1, Real* rho2);
 	static void find_phi_min(Real* phi1, Real* phi2);
@@ -96,31 +97,29 @@ public:
 		case 6:
 			return U.temp(x);
 #ifndef USE_FMM
-			case 7:
+		case 7:
 			return get_phi(i - BW + 1, j - BW + 1, k - BW + 1);
-			case 8:
+		case 8:
 			return get_fx(i - BW + 1, j - BW + 1, k - BW + 1);
-			case 9:
+		case 9:
 			return get_fy(i - BW + 1, j - BW + 1, k - BW + 1);
-			case 10:
+		case 10:
 			return get_fz(i - BW + 1, j - BW + 1, k - BW + 1);
 		}
 #else
 		case 7:
-			return get_phi(i, j, k);
+		return get_phi(i, j, k);
 		case 8:
-			return gx(i, j, k);
+		return gx(i, j, k);
 		case 9:
-			return gy(i, j, k);
+		return gy(i, j, k);
 		case 10:
-			return gz(i, j, k);
+		return gz(i, j, k);
 		case 11:
-			return glz(i, j, k);
+		return (*this)(i, j, k).pg(this->X(i, j, k));
 		case 12:
-			return (*this)(i, j, k).pg(this->X(i, j, k));
-		case 13:
-			return (*this)(i, j, k).ei(this->X(i, j, k)) + (*this)(i, j, k).ed();
-		}
+		return g_lz(i,j,k);
+	}
 #endif
 		assert(false);
 		return 0.0;
@@ -150,16 +149,14 @@ public:
 		case 10:
 			return "gz";
 		case 11:
-			return "glz";
-		case 12:
 			return "p";
-		case 13:
-			return "e_gas";
-		} assert(false);
+		case 12:
+			return "g_lz";
+		}assert(false);
 		return "";
 	}
 	virtual int nvar_output() const {
-		return 14;
+		return 13;
 	}
 };
 #endif

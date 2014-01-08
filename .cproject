@@ -29,14 +29,14 @@
 								<option id="intel.compilestep.optimization.inline.expand1.1136322400" name="Inline Function Expansion" superClass="intel.compilestep.optimization.inline.expand1" value="inl.exp1.anysuitable" valueType="enumerated"/>
 								<option id="intel.compilestep.general.optimization2.1065350418" name="Optimization Level" superClass="intel.compilestep.general.optimization2" value="general.opt.speedHLO" valueType="enumerated"/>
 								<option id="intel.compilestep.cg.reqintelextensions4.831332356" name="Intel Processor-Specific Optimization" superClass="intel.compilestep.cg.reqintelextensions4" value="intel.cg.reqhost" valueType="enumerated"/>
-								<option id="intel.compilestep.float.fpmodel.261768298" name="Floating Point Model" superClass="intel.compilestep.float.fpmodel" value="fpmodel.fast.2" valueType="enumerated"/>
+								<option id="intel.compilestep.float.fpmodel.261768298" name="Floating Point Model" superClass="intel.compilestep.float.fpmodel" value="fpmodel.strict" valueType="enumerated"/>
 								<option id="intel.compilestep.optimization.ip.2089458738" name="Enable Interprocedural Optimization for Single File Compilation (-ip)" superClass="intel.compilestep.optimization.ip" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.optimization.unrollcnt.1166286300" name="Loop Unroll Count(0=disable, default=blank) (-unroll [n])" superClass="intel.compilestep.optimization.unrollcnt" value="" valueType="string"/>
 								<option id="intel.compilestep.data.fno-alias.955438835" name="Assume No Aliasing in Program (-fno-alias)" superClass="intel.compilestep.data.fno-alias" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.data.alias_args.1977339082" name="Enable Argument Aliasing (-fargument-alias)" superClass="intel.compilestep.data.alias_args" value="true" valueType="boolean"/>
 								<option id="intel.compilestep.language.ansi_alias.49059106" name="Enable Use of ANSI Aliasing Rules in Optimizations (-ansi-alias)" superClass="intel.compilestep.language.ansi_alias" value="false" valueType="boolean"/>
 								<option id="intel.compilestep.optimization.parallel.1709054682" name="Parallelization (-parallel)" superClass="intel.compilestep.optimization.parallel" value="false" valueType="boolean"/>
-								<option id="intel.compilestep.float.speculation.2030649195" name="Floating-Point Speculation" superClass="intel.compilestep.float.speculation" value="speculation.fast" valueType="enumerated"/>
+								<option id="intel.compilestep.float.speculation.2030649195" name="Floating-Point Speculation" superClass="intel.compilestep.float.speculation" value="speculation.off" valueType="enumerated"/>
 								<option id="intel.compilestep.diagnostics.sc.level11.1550665574" name="Level Of Source Code Analysis" superClass="intel.compilestep.diagnostics.sc.level11" value="diagnostics.sv.default" valueType="enumerated"/>
 								<option id="intel.compilestep.language.ansi_conformance.1492713799" name="ANSI Conformance" superClass="intel.compilestep.language.ansi_conformance" value="ansi_conformance.1" valueType="enumerated"/>
 								<option id="intel.compilestep.optimization.no.intrin.inline.153181548" name="Disable Intrinsic Inline Expansion (-nolib-inline)" superClass="intel.compilestep.optimization.no.intrin.inline" value="false" valueType="boolean"/>
@@ -60,7 +60,7 @@
 									<listOptionValue builtIn="false" value="/home/dmarce1/lib"/>
 								</option>
 							</tool>
-							<tool command="mpic++" id="intel.cpp.linkstep.linux.x86_64.exe.rel.1566567523_11.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.rel_11.1.0">
+							<tool command="mpic++ -openmp" id="intel.cpp.linkstep.linux.x86_64.exe.rel.1566567523_11.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.rel_11.1.0">
 								<option id="intel.linkstep.libname.812047217" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
 									<listOptionValue builtIn="false" value="bfd"/>
 									<listOptionValue builtIn="false" value="iberty"/>
@@ -85,8 +85,8 @@
 					</folderInfo>
 					<fileInfo id="intel.linux.x86_64.exe.rel.416340396.1517644244_11.1.0" name="reconstruct.cpp" rcbsApplicability="disable" resourcePath="src/reconstruct.cpp" toolsToInvoke="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548.438083666_11.1.0">
 						<tool id="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548.438083666_11.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.rel.692072548_11.1.0">
-							<option id="intel.compilestep.optimization.ipo.1418239161" superClass="intel.compilestep.optimization.ipo" value="false" valueType="boolean"/>
-							<option id="intel.compilestep.optimization.ip.1512622921" superClass="intel.compilestep.optimization.ip" value="true" valueType="boolean"/>
+							<option id="intel.compilestep.optimization.ipo.1418239161" name="Enable Whole Program Optimization (-ipo)" superClass="intel.compilestep.optimization.ipo" value="false" valueType="boolean"/>
+							<option id="intel.compilestep.optimization.ip.1512622921" name="Enable Interprocedural Optimization for Single File Compilation (-ip)" superClass="intel.compilestep.optimization.ip" value="true" valueType="boolean"/>
 							<inputType id="intel.cpp.compilestep.input.1370583873" superClass="intel.cpp.compilestep.input"/>
 						</tool>
 						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1187635739" name="Resource Custom Build Step">

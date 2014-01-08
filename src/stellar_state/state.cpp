@@ -7,7 +7,7 @@
 #include "../oct_node/oct_face.h"
 #include "state.h"
 const Real StellarState::gamma = 5.0 / 3.0;
-Real StellarState::rho_floor = 1.0e-13;
+Real StellarState::rho_floor = 1.0e-12;
 Real StellarState::ei_floor = 1.0e-20;
 const int StellarState::d_index = 0;
 const int StellarState::sx_index = 1;

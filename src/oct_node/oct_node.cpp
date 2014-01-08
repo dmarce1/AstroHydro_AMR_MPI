@@ -769,7 +769,7 @@ void OctNode::output(grid_output_t* ptr, int nx0, int bw0) const {
 }
 
 void OctNode::output(const char* prefix, int counter, int nx0, int bw0) const {
-	output_buffer = new Real[this->nvar_output() * (nx0 - 2 * bw0) * (nx0 - 2 * bw0) * (nx0 - 2 * bw0)];
+		output_buffer = new Real[this->nvar_output() * (nx0 - 2 * bw0) * (nx0 - 2 * bw0) * (nx0 - 2 * bw0)];
 	assert( get_level() == 0);
 	char filename[32];
 	int cnt, nzones, nnodes;

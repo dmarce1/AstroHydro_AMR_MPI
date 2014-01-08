@@ -26,7 +26,7 @@ typedef HydroFMMGrid ProblemGrid;
 #endif
 
 #ifdef BINARY_STAR
-#define USE_FMM
+//#define USE_FMM
 #define STELLAR_STATE
 #define HYDRO_GRAV_GRID
 #define NFRAC 2

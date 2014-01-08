@@ -18,7 +18,7 @@
 
 #include "expansion.h"
 
-#define FORDER 1
+#define FORDER 2
 #define FNX (INX+2*FBW)
 
 #define FBW (2*FORDER)
@@ -104,7 +104,7 @@ public:
 		g[2] = gz(i,j,k);
 		return g;
 	}
-	_3Vec g_eff(int i, int j, int k ) const {
+	_3Vec geff(int i, int j, int k ) const {
 		_3Vec g;
 		g[0] = gx(i,j,k) + pow(State::get_omega(),2)*xc(i);
 		g[1] = gy(i,j,k) + pow(State::get_omega(),2)*yc(j);
